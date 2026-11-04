@@ -1,0 +1,6 @@
+{
+  "name": "OneShot — Execution Integrity for AI Agents on NEAR",
+  "description": "One decision. One shot. Ambiguous execution is how approved agents multiply trades. OneShot makes decision execution exactly-once, enforced on-chain.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
