@@ -13,6 +13,7 @@ export const DEFAULT_CONFIG: SimulationConfig = {
   decisionSize: 500,
   ceiling: 500,
   isLiveMode: false, // Default is replay mode with real-run fidelity
+  latencyProfile: 'medium',
 };
 
 export const DEFAULT_DECISION_ID = '0x9f3a8b41e05d2c73';
@@ -126,6 +127,13 @@ export function buildSimulationSchedule(config: SimulationConfig): SimulationEve
   });
 
   // Simulated network latency: Waiting for consensus before on-chain confirmation
+  const latencyLabel =
+    config.latencyProfile === 'low'
+      ? 'Low (Fast RPC ~180ms)'
+      : config.latencyProfile === 'high'
+      ? 'High (Congested mempool ~2,450ms)'
+      : 'Normal (Nightshade chunk ~850ms)';
+
   events.push({
     t: 0.22,
     formattedTime: formatTimeMs(0.22),
@@ -134,7 +142,7 @@ export function buildSimulationSchedule(config: SimulationConfig): SimulationEve
     type: 'consensus_waiting',
     data: {
       attempt: 1,
-      message: 'Waiting for consensus… (broadcasting to Nightshade chunk)',
+      message: `Waiting for consensus… [${latencyLabel}]`,
     },
   });
 
@@ -146,7 +154,7 @@ export function buildSimulationSchedule(config: SimulationConfig): SimulationEve
     type: 'consensus_waiting',
     data: {
       attempt: 1,
-      message: 'Waiting for consensus… (Nightshade chunk #131894300)',
+      message: `Waiting for consensus… [${latencyLabel} · Chunk #131894300]`,
     },
   });
 

@@ -85,3 +85,17 @@ test('parseEventsToTransactions parses simulation events into structured on-chai
   assert.equal(settledTx.method, 'promise_callback');
 });
 
+test('buildSimulationSchedule adapts consensus latency messages based on latencyProfile', () => {
+  const lowSchedule = buildSimulationSchedule({ ...DEFAULT_CONFIG, latencyProfile: 'low' });
+  const lowWait = lowSchedule.find((e) => e.type === 'consensus_waiting' && e.agent === 'oneshot');
+  assert.ok(lowWait?.data.message?.includes('Low (Fast RPC'));
+
+  const highSchedule = buildSimulationSchedule({ ...DEFAULT_CONFIG, latencyProfile: 'high' });
+  const highWait = highSchedule.find((e) => e.type === 'consensus_waiting' && e.agent === 'oneshot');
+  assert.ok(highWait?.data.message?.includes('High (Congested'));
+
+  const medSchedule = buildSimulationSchedule({ ...DEFAULT_CONFIG, latencyProfile: 'medium' });
+  const medWait = medSchedule.find((e) => e.type === 'consensus_waiting' && e.agent === 'oneshot');
+  assert.ok(medWait?.data.message?.includes('Normal (Nightshade'));
+});
+

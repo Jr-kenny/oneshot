@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { OnChainTx } from '../types';
-import { ExternalLink, Copy, Check, Filter, ShieldCheck, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Copy, Check, Filter, ShieldCheck, ShieldAlert, CheckCircle2, Download } from 'lucide-react';
 
 interface RecentTransactionsProps {
   transactions: OnChainTx[];
@@ -13,11 +13,40 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ONESHOT' | 'UNPROTECTED' | 'SETTLED'>('ALL');
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
+  const [isExported, setIsExported] = useState(false);
 
   const handleCopy = (txHash: string) => {
     navigator.clipboard.writeText(txHash);
     setCopiedTx(txHash);
     setTimeout(() => setCopiedTx(null), 2000);
+  };
+
+  const handleExportJson = () => {
+    const exportData = {
+      app: 'OneShot Execution Integrity',
+      network: 'NEAR Mainnet',
+      contract: 'oneshot-guard.near',
+      exportTimestamp: new Date().toISOString(),
+      transactionCount: transactions.length,
+      filteredCount: filteredTxs.length,
+      filterApplied: filter,
+      transactions: filteredTxs,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `oneshot-execution-logs-${Date.now()}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setIsExported(true);
+    setTimeout(() => setIsExported(false), 2000);
   };
 
   const filteredTxs = transactions.filter((tx) => {
@@ -45,25 +74,61 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
           )}
         </div>
 
-        {/* Filter controls */}
-        <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded-[4px] border border-[#1F2733]">
-          <span className="text-[10px] text-[#8A94A6] px-1.5 uppercase tracking-wider flex items-center gap-1">
-            <Filter size={10} />
-            Filter
-          </span>
-          {(['ALL', 'ONESHOT', 'UNPROTECTED', 'SETTLED'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-2 py-0.5 rounded-[3px] text-[10px] transition-colors ${
-                filter === f
-                  ? 'bg-[#1F2733] text-[#E6EAF0] font-semibold'
-                  : 'text-[#8A94A6] hover:text-[#E6EAF0]'
-              }`}
-            >
-              {f === 'ALL' ? 'All' : f === 'ONESHOT' ? 'OneShot' : f === 'UNPROTECTED' ? 'Unprotected' : 'Settled'}
-            </button>
-          ))}
+        {/* Right Actions: Explorer, Export & Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* View on NEAR Explorer Button */}
+          <a
+            href="https://nearblocks.io/address/oneshot-guard.near"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0A0E14] border border-[#1F2733] hover:border-[#2BD576]/50 text-[#8A94A6] hover:text-[#2BD576] text-[11px] font-mono transition-colors focus:outline-none cursor-pointer"
+            title="View mock contract and block transactions on NEAR Explorer (opens in new tab)"
+            aria-label="View on NEAR Explorer"
+          >
+            <ExternalLink size={12} className="text-[#2BD576]" />
+            <span>View on NEAR Explorer</span>
+          </a>
+
+          {/* Export JSON Button */}
+          <button
+            onClick={handleExportJson}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0A0E14] border border-[#1F2733] hover:border-[#8A94A6] text-[#8A94A6] hover:text-[#E6EAF0] text-[11px] font-mono transition-colors focus:outline-none cursor-pointer"
+            title="Export session execution logs as JSON file"
+            aria-label="Export logs as JSON"
+          >
+            {isExported ? (
+              <>
+                <Check size={12} className="text-[#2BD576]" />
+                <span className="text-[#2BD576]">Exported</span>
+              </>
+            ) : (
+              <>
+                <Download size={12} />
+                <span>Export JSON</span>
+              </>
+            )}
+          </button>
+
+          {/* Filter controls */}
+          <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded-[4px] border border-[#1F2733]">
+            <span className="text-[10px] text-[#8A94A6] px-1.5 uppercase tracking-wider flex items-center gap-1">
+              <Filter size={10} />
+              Filter
+            </span>
+            {(['ALL', 'ONESHOT', 'UNPROTECTED', 'SETTLED'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-2 py-0.5 rounded-[3px] text-[10px] transition-colors ${
+                  filter === f
+                    ? 'bg-[#1F2733] text-[#E6EAF0] font-semibold'
+                    : 'text-[#8A94A6] hover:text-[#E6EAF0]'
+                }`}
+              >
+                {f === 'ALL' ? 'All' : f === 'ONESHOT' ? 'OneShot' : f === 'UNPROTECTED' ? 'Unprotected' : 'Settled'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -112,8 +177,9 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
                       </span>
                       <button
                         onClick={() => handleCopy(tx.txHash)}
-                        className="p-1 hover:text-[#E6EAF0] text-[#8A94A6] focus:outline-none"
+                        className="p-1 hover:text-[#E6EAF0] text-[#8A94A6] focus:outline-none cursor-pointer"
                         aria-label="Copy transaction hash"
+                        title="Copy Tx Hash"
                       >
                         {copiedTx === tx.txHash ? (
                           <Check size={11} className="text-[#2BD576]" />
@@ -125,10 +191,12 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
                         href={`https://nearblocks.io/txns/${tx.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#8A94A6] hover:text-[#E6EAF0]"
-                        aria-label="View on explorer"
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#151B25] hover:bg-[#1F2733] border border-[#1F2733] hover:border-[#8A94A6] text-[#8A94A6] hover:text-[#E6EAF0] text-[10px] transition-colors"
+                        aria-label={`View transaction ${tx.txHash} on NEAR Explorer`}
+                        title="View on NEAR Explorer (new tab)"
                       >
-                        <ExternalLink size={11} />
+                        <ExternalLink size={9} />
+                        <span>Explorer</span>
                       </a>
                     </div>
                   </td>
@@ -203,9 +271,21 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
       </div>
 
       {/* Footer info note */}
-      <div className="px-4 py-2 bg-[#0A0E14] border-t border-[#1F2733] text-[11px] font-mono text-[#8A94A6] flex items-center justify-between">
+      <div className="px-4 py-2 bg-[#0A0E14] border-t border-[#1F2733] text-[11px] font-mono text-[#8A94A6] flex items-center justify-between flex-wrap gap-2">
         <span>Cross-referenced against NEAR Mainnet ledger proofs.</span>
-        <span className="text-[#E6EAF0]">Network: NEAR Mainnet</span>
+        <div className="flex items-center gap-3">
+          <a
+            href="https://nearblocks.io/blocks"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#8A94A6] hover:text-[#2BD576] inline-flex items-center gap-1 transition-colors"
+            title="View latest blocks on NEAR Explorer (new tab)"
+          >
+            <ExternalLink size={10} />
+            <span>Latest Block Height</span>
+          </a>
+          <span className="text-[#E6EAF0]">Network: NEAR Mainnet</span>
+        </div>
       </div>
     </div>
   );

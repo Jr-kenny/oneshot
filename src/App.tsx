@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
@@ -53,32 +54,34 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0E14] text-[#E6EAF0] flex flex-col font-sans selection:bg-[#F5A524]/20 selection:text-[#F5A524]">
-      {/* Top 56px sticky navigation */}
-      <Navbar
-        currentRoute={currentRoute}
-        onNavigate={navigate}
-        onStartDemoRun={handleStartDemoRun}
-      />
+    <ThemeProvider>
+      <div className="min-h-screen bg-[#0A0E14] text-[#E6EAF0] flex flex-col font-sans selection:bg-[#F5A524]/20 selection:text-[#F5A524] transition-colors duration-200">
+        {/* Top 56px sticky navigation */}
+        <Navbar
+          currentRoute={currentRoute}
+          onNavigate={navigate}
+          onStartDemoRun={handleStartDemoRun}
+        />
 
-      {/* Main Content View */}
-      <main className="flex-1 w-full" id="main-content">
-        {currentRoute === '/' && (
-          <LandingPage onNavigate={navigate} onStartDemoRun={handleStartDemoRun} />
-        )}
-        {currentRoute === '/demo' && (
-          <DemoConsole autoStart={triggerAutoStart} />
-        )}
-        {currentRoute === '/how-it-works' && (
-          <HowItWorks />
-        )}
-        {currentRoute === '/builders' && (
-          <BuildersPage />
-        )}
-      </main>
+        {/* Main Content View */}
+        <main className="flex-1 w-full" id="main-content">
+          {currentRoute === '/' && (
+            <LandingPage onNavigate={navigate} onStartDemoRun={handleStartDemoRun} />
+          )}
+          {currentRoute === '/demo' && (
+            <DemoConsole autoStart={triggerAutoStart} />
+          )}
+          {currentRoute === '/how-it-works' && (
+            <HowItWorks />
+          )}
+          {currentRoute === '/builders' && (
+            <BuildersPage />
+          )}
+        </main>
 
-      {/* Standard Footer */}
-      <Footer />
-    </div>
+        {/* Standard Footer */}
+        <Footer />
+      </div>
+    </ThemeProvider>
   );
 }

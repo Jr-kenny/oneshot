@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Activity, Gauge, CheckCircle2, AlertTriangle, ShieldCheck, Cpu } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface PerformanceDashboardProps {
   totalTxs: number;
@@ -25,6 +26,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   decisionSize,
   consensusStatus,
 }) => {
+  const { isLight } = useTheme();
   const lineChartRef = useRef<SVGSVGElement | null>(null);
   const barChartRef = useRef<SVGSVGElement | null>(null);
 
@@ -86,7 +88,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
 
     // Grid lines
     g.append('g')
-      .attr('stroke', '#1F2733')
+      .attr('stroke', isLight ? '#E2E8F0' : '#1F2733')
       .attr('stroke-dasharray', '2,2')
       .selectAll('line')
       .data([1.0, 1.2, 1.4, 1.6])
@@ -111,7 +113,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       .append('stop')
       .attr('offset', '0%')
       .attr('stop-color', '#2BD576')
-      .attr('stop-opacity', 0.25);
+      .attr('stop-opacity', isLight ? 0.35 : 0.25);
 
     gradient
       .append('stop')
@@ -168,7 +170,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       .call((gAxis) =>
         gAxis
           .selectAll('text')
-          .attr('fill', '#8A94A6')
+          .attr('fill', isLight ? '#475569' : '#8A94A6')
           .attr('font-size', '9px')
           .attr('font-family', 'JetBrains Mono')
       )
@@ -181,9 +183,9 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       .attr('cy', yScale(lastPoint.finalitySec))
       .attr('r', 3)
       .attr('fill', '#2BD576')
-      .attr('stroke', '#0A0E14')
+      .attr('stroke', isLight ? '#FFFFFF' : '#0A0E14')
       .attr('stroke-width', 1.5);
-  }, [latencyData]);
+  }, [latencyData, isLight]);
 
   // Render D3 Bar Chart for Capital Exposure Efficiency
   useEffect(() => {
@@ -206,7 +208,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
     const oneshotSpend = decisionSize;
 
     const data = [
-      { label: 'Authorized', value: decisionSize, color: '#8A94A6' },
+      { label: 'Authorized', value: decisionSize, color: isLight ? '#94A3B8' : '#8A94A6' },
       { label: 'OneShot', value: oneshotSpend, color: '#2BD576' },
       { label: 'Unprotected', value: unprotSpend, color: '#FF5A36' },
     ];
@@ -244,7 +246,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       .attr('class', 'val-text')
       .attr('x', (d) => xScale(d.value) + 6)
       .attr('y', (d) => (yScale(d.label) || 0) + yScale.bandwidth() / 2 + 3)
-      .attr('fill', '#E6EAF0')
+      .attr('fill', isLight ? '#0F172A' : '#E6EAF0')
       .attr('font-size', '9px')
       .attr('font-family', 'JetBrains Mono')
       .text((d) => `$${d.value.toLocaleString()}`);
@@ -257,12 +259,12 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       .call((gAxis) =>
         gAxis
           .selectAll('text')
-          .attr('fill', '#8A94A6')
+          .attr('fill', isLight ? '#475569' : '#8A94A6')
           .attr('font-size', '9px')
           .attr('font-family', 'JetBrains Mono')
       )
       .call((gAxis) => gAxis.selectAll('.tick line').remove());
-  }, [duplicateFills, decisionSize]);
+  }, [duplicateFills, decisionSize, isLight]);
 
   // Derived metrics
   const avgFinality = (

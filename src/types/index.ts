@@ -53,6 +53,8 @@ export interface SimulationEvent {
   };
 }
 
+export type LatencyProfile = 'low' | 'medium' | 'high';
+
 export interface SimulationConfig {
   swallowAck: boolean;
   resolutionDelay: number; // 3, 8, 15, 30
@@ -60,6 +62,7 @@ export interface SimulationConfig {
   decisionSize: number; // 100, 500, 1000
   ceiling: number; // e.g. decisionSize (or 500 standard)
   isLiveMode: boolean; // true = Live WebSocket / simulated live API, false = Replay recorded run
+  latencyProfile?: LatencyProfile; // 'low' (fast) | 'medium' (normal) | 'high' (slow)
 }
 
 export interface AgentRunState {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   currentRoute: string;
@@ -12,6 +13,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onStartDemoRun,
 }) => {
+  const { isLight, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleRunDemo = () => {
@@ -64,8 +66,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
           </nav>
 
-          {/* Right Action */}
-          <div className="flex items-center gap-3">
+          {/* Right Action: Theme toggle + Run chaos demo */}
+          <div className="flex items-center gap-2.5">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-[4px] bg-[#151B25] hover:bg-[#1F2733] border border-[#1F2733] text-[#8A94A6] hover:text-[#E6EAF0] transition-colors focus:outline-none cursor-pointer flex items-center justify-center"
+              title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              aria-label={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {isLight ? (
+                <Moon size={15} className="text-[#0F172A]" />
+              ) : (
+                <Sun size={15} className="text-[#F5A524]" />
+              )}
+            </button>
+
             <button
               onClick={handleRunDemo}
               className="px-3.5 py-1.5 bg-[#E6EAF0] text-[#0A0E14] text-xs font-semibold rounded-[4px] hover:bg-white active:bg-gray-200 transition-colors cursor-pointer select-none"
@@ -121,6 +137,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="mt-4 pt-4 border-t border-[#1F2733] flex flex-col gap-2">
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs font-mono uppercase text-[#8A94A6] tracking-wider">
+                Theme: {isLight ? 'Light' : 'Dark'}
+              </span>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#151B25] border border-[#1F2733] text-xs font-mono text-[#E6EAF0]"
+              >
+                {isLight ? <Moon size={14} /> : <Sun size={14} className="text-[#F5A524]" />}
+                <span>{isLight ? 'Dark Mode' : 'Light Mode'}</span>
+              </button>
+            </div>
             <span className="text-xs font-mono uppercase text-[#8A94A6] tracking-wider">
               Network: NEAR Mainnet
             </span>

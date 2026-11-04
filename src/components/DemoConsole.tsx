@@ -20,7 +20,8 @@ import {
 import { ReservationBar } from './ReservationBar';
 import { RecentTransactions } from './RecentTransactions';
 import { PerformanceDashboard } from './PerformanceDashboard';
-import { Play, RotateCcw, ShieldAlert, ShieldCheck, ExternalLink, Zap, ScrollText, Loader2 } from 'lucide-react';
+import { ExecutionLifecycleTimeline } from './ExecutionLifecycleTimeline';
+import { Play, RotateCcw, ShieldAlert, ShieldCheck, ExternalLink, Zap, ScrollText, Loader2, GitCommit, Gauge } from 'lucide-react';
 
 interface DemoConsoleProps {
   autoStart?: boolean;
@@ -36,6 +37,7 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
   }>(createInitialAgentState());
   const [activeTab, setActiveTab] = useState<'both' | 'unprotected' | 'oneshot'>('both');
   const [isConsoleHovered, setIsConsoleHovered] = useState(false);
+  const [oneshotViewMode, setOneshotViewMode] = useState<'timeline' | 'console'>('timeline');
 
   // References for playback loop
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,8 +68,11 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
     const startTimestamp = Date.now();
     startTimeRef.current = startTimestamp;
 
+    const latency = config.latencyProfile || 'medium';
+    const speedMultiplier = latency === 'low' ? 1.6 : latency === 'high' ? 0.6 : 1.0;
+
     timerRef.current = setInterval(() => {
-      const currentSeconds = (Date.now() - startTimestamp) / 1000;
+      const currentSeconds = ((Date.now() - startTimestamp) / 1000) * speedMultiplier;
       setElapsed(currentSeconds);
 
       // Consume events up to currentSeconds
@@ -217,6 +222,42 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
                 ${s}
               </button>
             ))}
+          </div>
+
+          {/* Simulated Latency Toggle */}
+          <div className="flex items-center gap-1 bg-[#151B25] p-0.5 rounded-[4px] border border-[#1F2733]">
+            <span className="text-[10px] text-[#8A94A6] px-1.5 uppercase tracking-wider flex items-center gap-1">
+              <Gauge size={10} />
+              Latency
+            </span>
+            {(['low', 'medium', 'high'] as const).map((l) => {
+              const active = (config.latencyProfile || 'medium') === l;
+              return (
+                <button
+                  key={l}
+                  onClick={() => setConfig({ ...config, latencyProfile: l })}
+                  className={`px-2 py-0.5 rounded-[3px] text-[11px] transition-colors cursor-pointer ${
+                    active
+                      ? l === 'low'
+                        ? 'bg-[#2BD576]/20 text-[#2BD576] font-semibold border border-[#2BD576]/30'
+                        : l === 'high'
+                        ? 'bg-[#F5A524]/20 text-[#F5A524] font-semibold border border-[#F5A524]/30'
+                        : 'bg-[#1F2733] text-[#E6EAF0] font-semibold'
+                      : 'text-[#8A94A6] hover:text-[#E6EAF0]'
+                  }`}
+                  title={`Simulate ${l} network latency (${
+                    l === 'low'
+                      ? 'Fast execution: ~180ms RPC'
+                      : l === 'medium'
+                      ? 'Normal execution: ~850ms chunk'
+                      : 'Slow execution: ~2,450ms congestion'
+                  })`}
+                  aria-label={`Set simulated latency to ${l}`}
+                >
+                  {l === 'low' ? 'Low (Fast)' : l === 'medium' ? 'Med' : 'High (Slow)'}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -442,7 +483,14 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
                       {att.status === 'WAITING_CONSENSUS' ? (
                         <span className="text-[10px] font-medium text-[#F5A524] bg-[#F5A524]/10 px-1.5 py-0.5 rounded flex items-center gap-1 animate-pulse">
                           <Loader2 size={10} className="animate-spin text-[#F5A524]" />
-                          Waiting for consensus…
+                          Waiting for consensus…{' '}
+                          <span className="text-[9px] opacity-80">
+                            {config.latencyProfile === 'low'
+                              ? '(Fast ~180ms)'
+                              : config.latencyProfile === 'high'
+                              ? '(Slow ~2.45s)'
+                              : '(~850ms)'}
+                          </span>
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold text-[#FF5A36] bg-[#FF5A36]/10 px-1 rounded">
@@ -602,7 +650,14 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
                         {att.status === 'WAITING_CONSENSUS' ? (
                           <span className="text-[10px] font-medium text-[#F5A524] bg-[#F5A524]/10 px-1.5 py-0.5 rounded flex items-center gap-1 animate-pulse">
                             <Loader2 size={10} className="animate-spin text-[#F5A524]" />
-                            Waiting for consensus…
+                            Waiting for consensus…{' '}
+                            <span className="text-[9px] opacity-80">
+                              {config.latencyProfile === 'low'
+                                ? '(Fast ~180ms)'
+                                : config.latencyProfile === 'high'
+                                ? '(Slow ~2.45s)'
+                                : '(~850ms)'}
+                            </span>
                           </span>
                         ) : isMain ? (
                           <span
@@ -627,14 +682,38 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
               </div>
             </div>
 
-            {/* Event Console */}
+            {/* Event Console / Lifecycle Timeline Header */}
             <div
-              className="flex-1 flex flex-col min-h-[260px] max-h-[420px] bg-[#0F141C] border border-[#1F2733] rounded-[6px] my-3 overflow-hidden"
+              className="flex-1 flex flex-col min-h-[300px] max-h-[460px] bg-[#0F141C] border border-[#1F2733] rounded-[6px] my-3 overflow-hidden"
               onMouseEnter={() => setIsConsoleHovered(true)}
               onMouseLeave={() => setIsConsoleHovered(false)}
             >
               <div className="px-3 py-1.5 bg-[#151B25] border-b border-[#1F2733] flex items-center justify-between text-[11px] font-mono text-[#8A94A6]">
-                <span>EVENT CONSOLE (ONESHOT GUARD)</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-[#0A0E14] p-0.5 rounded border border-[#1F2733]">
+                    <button
+                      onClick={() => setOneshotViewMode('timeline')}
+                      className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                        oneshotViewMode === 'timeline'
+                          ? 'bg-[#1F2733] text-[#2BD576] font-semibold'
+                          : 'text-[#8A94A6] hover:text-[#E6EAF0]'
+                      }`}
+                    >
+                      Lifecycle Timeline
+                    </button>
+                    <button
+                      onClick={() => setOneshotViewMode('console')}
+                      className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                        oneshotViewMode === 'console'
+                          ? 'bg-[#1F2733] text-[#E6EAF0] font-semibold'
+                          : 'text-[#8A94A6] hover:text-[#E6EAF0]'
+                      }`}
+                    >
+                      Console Stream
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <span className="text-[#2BD576] flex items-center gap-1 text-[10px]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#2BD576]" />
@@ -643,47 +722,66 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
                   <span>{agentState.oneshot.events.length} EVENTS</span>
                 </div>
               </div>
-              <div className="flex-1 p-3 font-mono text-xs overflow-y-auto space-y-1.5 leading-relaxed">
-                {agentState.oneshot.events.length === 0 ? (
-                  <div className="text-[#8A94A6] italic text-xs">
-                    Guard standing by. Click "Run chaos demo" to begin run.
-                  </div>
-                ) : (
-                  agentState.oneshot.events.map((ev, i) => {
-                    const isFinalizedSettlement = ev.type === 'decision_settled';
-                    const isBlocked = ev.type === 'retry_blocked';
-                    return (
-                      <div
-                        key={`oneshot-ev-${i}`}
-                        className={`text-[#8A94A6] transition-all duration-300 animate-in fade-in slide-in-from-bottom-1 duration-200 ${
-                          isFinalizedSettlement
-                            ? 'bg-[#2BD576]/10 border-l-2 border-[#2BD576] pl-2 py-0.5 rounded-r-[2px] shadow-[0_0_12px_rgba(43,213,118,0.15)]'
-                            : isBlocked
-                            ? 'bg-[#7C8CA8]/10 border-l-2 border-[#7C8CA8] pl-2 py-0.5 rounded-r-[2px]'
-                            : ''
-                        }`}
-                      >
-                        <span className="text-[#5B6577]">{ev.formattedTime}</span>{' '}
-                        <span
-                          className={
-                            ev.type === 'decision_settled'
-                              ? 'text-[#2BD576] font-semibold'
-                              : ev.type === 'retry_blocked'
-                              ? 'text-[#7C8CA8] font-semibold'
-                              : ev.type === 'decision_live'
-                              ? 'text-[#F5A524]'
-                              : 'text-[#E6EAF0]'
-                          }
+
+              {/* View 1: Execution Lifecycle Timeline */}
+              {oneshotViewMode === 'timeline' ? (
+                <div className="flex-1 overflow-y-auto p-3">
+                  <ExecutionLifecycleTimeline
+                    decisionId={decisionId}
+                    decisionState={agentState.oneshot.currentDecisionState}
+                    consensusStatus={agentState.oneshot.consensusStatus}
+                    isRunning={isRunning}
+                    elapsed={elapsed}
+                    decisionSize={config.decisionSize}
+                    resolutionVia={agentState.oneshot.resolutionVia}
+                    resolutionTx={agentState.oneshot.resolutionTx}
+                    inAir={agentState.oneshot.inAir}
+                  />
+                </div>
+              ) : (
+                /* View 2: Monospace Event Console */
+                <div className="flex-1 p-3 font-mono text-xs overflow-y-auto space-y-1.5 leading-relaxed">
+                  {agentState.oneshot.events.length === 0 ? (
+                    <div className="text-[#8A94A6] italic text-xs">
+                      Guard standing by. Click "Run chaos demo" to begin run.
+                    </div>
+                  ) : (
+                    agentState.oneshot.events.map((ev, i) => {
+                      const isFinalizedSettlement = ev.type === 'decision_settled';
+                      const isBlocked = ev.type === 'retry_blocked';
+                      return (
+                        <div
+                          key={`oneshot-ev-${i}`}
+                          className={`text-[#8A94A6] transition-all duration-300 animate-in fade-in slide-in-from-bottom-1 duration-200 ${
+                            isFinalizedSettlement
+                              ? 'bg-[#2BD576]/10 border-l-2 border-[#2BD576] pl-2 py-0.5 rounded-r-[2px] shadow-[0_0_12px_rgba(43,213,118,0.15)]'
+                              : isBlocked
+                              ? 'bg-[#7C8CA8]/10 border-l-2 border-[#7C8CA8] pl-2 py-0.5 rounded-r-[2px]'
+                              : ''
+                          }`}
                         >
-                          {ev.type}
-                        </span>{' '}
-                        <span>{ev.data.message || JSON.stringify(ev.data)}</span>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={rightConsoleEndRef} />
-              </div>
+                          <span className="text-[#5B6577]">{ev.formattedTime}</span>{' '}
+                          <span
+                            className={
+                              ev.type === 'decision_settled'
+                                ? 'text-[#2BD576] font-semibold'
+                                : ev.type === 'retry_blocked'
+                                ? 'text-[#7C8CA8] font-semibold'
+                                : ev.type === 'decision_live'
+                                ? 'text-[#F5A524]'
+                                : 'text-[#E6EAF0]'
+                            }
+                          >
+                            {ev.type}
+                          </span>{' '}
+                          <span>{ev.data.message || JSON.stringify(ev.data)}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={rightConsoleEndRef} />
+                </div>
+              )}
             </div>
 
             {/* Outcome Line (Bottom of column) */}

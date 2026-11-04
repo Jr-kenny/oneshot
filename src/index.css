@@ -33,11 +33,30 @@
   color-scheme: dark;
 }
 
+/* Light Theme Variables */
+:root.light,
+[data-theme="light"] {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --muted: #64748B;
+  --danger: #DC2626;
+  --live: #D97706;
+  --settled: #16A34A;
+  --expired: #94A3B8;
+  --blocked: #64748B;
+
+  color-scheme: light;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
   font-family: 'Space Grotesk', sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Tabular figures for machine data */
@@ -52,14 +71,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A0E14;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1F2733;
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2b3646;
+  background: var(--muted);
 }
 
 /* Focus outline standard */
@@ -68,3 +87,107 @@ body {
   outline-offset: 2px;
 }
 
+/* Systematic Light Mode Class Adaptations */
+.light body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+.light .bg-\[\#0A0E14\] {
+  background-color: #F8FAFC !important;
+}
+
+.light .bg-\[\#0F141C\] {
+  background-color: #FFFFFF !important;
+}
+
+.light .bg-\[\#0F141C\]\/80 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.light .bg-\[\#0F141C\]\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.light .bg-\[\#151B25\] {
+  background-color: #F1F5F9 !important;
+}
+
+.light .bg-\[\#151B25\]\/60 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+.light .bg-\[\#1F2733\] {
+  background-color: #E2E8F0 !important;
+}
+
+.light .border-\[\#1F2733\] {
+  border-color: #E2E8F0 !important;
+}
+
+.light .border-\[\#1F2733\]\/60 {
+  border-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+.light .border-\[\#1F2733\]\/40 {
+  border-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+.light .border-\[\#1F2733\]\/30 {
+  border-color: rgba(226, 232, 240, 0.5) !important;
+}
+
+.light .text-\[\#E6EAF0\] {
+  color: #0F172A !important;
+}
+
+.light .text-\[\#8A94A6\] {
+  color: #475569 !important;
+}
+
+.light .text-\[\#5B6577\] {
+  color: #64748B !important;
+}
+
+.light .hover\:bg-\[\#151B25\]:hover {
+  background-color: #F1F5F9 !important;
+}
+
+.light .hover\:bg-\[\#1F2733\]:hover {
+  background-color: #E2E8F0 !important;
+}
+
+.light .hover\:border-\[\#8A94A6\]:hover {
+  border-color: #94A3B8 !important;
+}
+
+.light .hover\:text-\[\#E6EAF0\]:hover {
+  color: #0F172A !important;
+}
+
+.light .divide-\[\#1F2733\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #E2E8F0 !important;
+}
+
+.light .divide-\[\#1F2733\]\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+.light pre,
+.light code {
+  color: #0F172A;
+}
+
+/* Primary CTA inverted contrast in light mode */
+.light .bg-\[\#E6EAF0\].text-\[\#0A0E14\] {
+  background-color: #0F172A !important;
+  color: #FFFFFF !important;
+}
+
+.light .bg-\[\#E6EAF0\].text-\[\#0A0E14\]:hover {
+  background-color: #1E293B !important;
+}
+
+.light .bg-\[\#0A0E14\]\/95 {
+  background-color: rgba(248, 250, 252, 0.96) !important;
+}
