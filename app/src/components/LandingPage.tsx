@@ -28,7 +28,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
       {/* 5.1 HERO SECTION */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-12 md:pt-20 pb-8">
         <div className="max-w-[840px]">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.03em] leading-[1.05] text-[#E6EAF0] mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-[-0.02em] leading-[1.1] text-[#E6EAF0] mb-6">
             One decision. One shot.
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-normal text-[#8A94A6] leading-relaxed mb-8">
@@ -141,7 +141,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
             {/* LIVE */}
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-[4px] bg-[#F5A524]/15 border border-[#F5A524] text-[#F5A524] font-mono text-xs font-bold tracking-wider">
+              <span className="px-3 py-1 rounded-[4px] bg-[#F5A524]/15 border border-[#F5A524] text-[#F5A524] font-mono text-xs font-semibold tracking-wider">
                 LIVE
               </span>
               <span className="text-xs text-[#8A94A6] font-mono">Attempt in flight</span>
@@ -151,7 +151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
 
             {/* SETTLED */}
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-[4px] bg-[#2BD576]/15 border border-[#2BD576] text-[#2BD576] font-mono text-xs font-bold tracking-wider">
+              <span className="px-3 py-1 rounded-[4px] bg-[#2BD576]/15 border border-[#2BD576] text-[#2BD576] font-mono text-xs font-semibold tracking-wider">
                 SETTLED
               </span>
               <span className="text-xs text-[#8A94A6] font-mono">Resolved & consumed</span>
@@ -161,7 +161,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
 
             {/* EXPIRED */}
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-[4px] bg-[#5B6577]/20 border border-[#5B6577] text-[#5B6577] font-mono text-xs font-bold tracking-wider">
+              <span className="px-3 py-1 rounded-[4px] bg-[#5B6577]/20 border border-[#5B6577] text-[#5B6577] font-mono text-xs font-semibold tracking-wider">
                 EXPIRED
               </span>
               <span className="text-xs text-[#8A94A6] font-mono">Deadline passed</span>
@@ -320,11 +320,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
               <div className="flex items-baseline justify-between font-mono">
                 <div>
                   <span className="text-[10px] text-[#8A94A6] block">UNPROTECTED</span>
-                  <span className="text-3xl font-bold text-[#FF5A36]">5 fills</span>
+                  <span className="text-2xl font-semibold text-[#FF5A36]">5 fills</span>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-[#8A94A6] block">ONESHOT</span>
-                  <span className="text-3xl font-bold text-[#2BD576]">0 fills</span>
+                  <span className="text-2xl font-semibold text-[#2BD576]">0 fills</span>
                 </div>
               </div>
             </div>
@@ -337,11 +337,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
               <div className="flex items-baseline justify-between font-mono">
                 <div>
                   <span className="text-[10px] text-[#8A94A6] block">UNPROTECTED</span>
-                  <span className="text-3xl font-bold text-[#FF5A36]">$2,500</span>
+                  <span className="text-2xl font-semibold text-[#FF5A36]">$2,500</span>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-[#8A94A6] block">ONESHOT</span>
-                  <span className="text-3xl font-bold text-[#2BD576]">$0</span>
+                  <span className="text-2xl font-semibold text-[#2BD576]">$0</span>
                 </div>
               </div>
             </div>
@@ -372,7 +372,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onStartDem
 
       {/* 5.6 CLOSING */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-20 text-center">
-        <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#E6EAF0] mb-4">
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#E6EAF0] mb-4">
           One decision. One shot.
         </h2>
         <p className="text-lg text-[#8A94A6] max-w-[600px] mx-auto mb-8">
