@@ -14,6 +14,7 @@
   --color-blocked: #7C8CA8;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -196,9 +197,18 @@ body {
    Headings are semibold at most, never bold; body is regular weight
    with generous line height. JetBrains Mono is reserved for data,
    numbers, hashes and code. */
+.font-display {
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
 h1, h2, h3, h4 {
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+h1.font-display, h2.font-display {
+  font-weight: 400;
+  letter-spacing: 0;
 }
 .font-bold {
   font-weight: 600;
