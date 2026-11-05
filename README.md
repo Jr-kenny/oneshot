@@ -1,89 +1,150 @@
-# OneShot — Execution Integrity for AI Agents on NEAR
+# OneShot — One decision. One shot.
 
-> **One decision. One shot.** Ambiguous execution is how approved agents multiply trades: every retry was individually approved, and together they can do real damage. OneShot makes decision execution exactly-once, enforced on-chain.
+> **The worry this project exists to kill:** you give an AI agent money and clear rules, it makes a perfectly good decision — and then you lose money anyway, not because the decision was wrong, but because nobody could prove what happened to it afterwards.
 
-[![tests](https://img.shields.io/badge/contract_tests-10%2F10_passing-2BD576)](#verification) [![sandbox](https://img.shields.io/badge/live_sandbox_verified-real_on--chain_verdicts-2BD576)](#verification)
+[![NEAR testnet verified](https://img.shields.io/badge/live_on_NEAREntestnet-verified-2BD576)](https://explorer.testnet.near.org/accounts/oneshot-guard.testnet)
+[![Contract tests](https://img.shields.io/badge/contract_tests-13%2F13_passing-2BD576)](#verification)
+[![Track](https://img.shields.io/badge/track-AI_Security_%26_Defense-blue)](#tracks)
 
-## The problem, in plain English
+Built for **NEAR HACKATHON** · Primary track: **AI Security & Defense** · Secondary track: **Unstoppable DeFi** · Live on NEAR testnet.
 
-An AI agent that trades for you does not usually fail because it makes a bad decision. It fails because it cannot tell what happened after it made a good one.
+---
 
-Imagine the agent makes a sensible, in-budget decision: buy $500 of an asset. It sends that trade off. Then it hears nothing back.
+## 1. Start here: the worry
 
-That silence could mean three very different things. The trade might still be waiting to be filled. It might have already filled, but the confirmation got lost on the way back. Or it might never happen at all.
+Picture this, because it is the whole project in one scene.
 
-From the agent's side, all three look exactly the same: nothing came back. So it does what any normal program does when it thinks something failed. It tries again.
+You hand an AI agent a simple job and a simple budget: *buy $500 of this asset, don't exceed the budget, don't do anything reckless.* The agent does exactly that. It picks a sound trade, inside budget, inside the rules you set, and it sends it.
 
-And that is where the real damage happens.
+Then: silence.
 
-Each retry, on its own, looks fine. It passes the budget check. It follows the rules. But if the first trade actually did go through quietly, and then the second and third trades go through as well, the agent has now bought the same thing three times. It meant to spend $500. It has spent $1,500. No single trade broke the rules, but together they blew the budget and doubled the position.
+The trade was delayed on its way to the block. Or it was outbid. Or the confirmation was dropped on the way back. The agent cannot tell which one happened, because from where it stands, all three look identical: nothing came back.
 
-A timeout does not fix this, because a timeout is not proof. A timeout just means "I waited and I heard nothing." It cannot tell you whether the first attempt landed or whether it is provably dead. And a normal retry limit does not fix it either, because even a limit of one retry still leaves the agent blind about what happened to the first attempt.
+So the agent does the only sensible thing a program knows how to do when it thinks something failed. It tries again.
 
-The problem is not the trade. The problem is knowing.
+Each retry, on its own, passes every check. It is in budget. It follows the rules. It was individually approved. But if the first trade actually went through quietly, and the second and third go through as well, you have not bought $500 of the asset. You have bought it three times. You meant to spend $500. You spent $1,500, and doubled the position you wanted — with no single trade ever breaking a rule.
 
-### What OneShot does about it, in plain English
+That is the worry. Not a bad agent. Not a bad decision. A good decision, repeated by a system that could not prove what had already happened.
 
-OneShot gives the decision itself a life story, separate from each individual attempt to carry it out.
+OneShot exists so an agent never has to guess from silence again.
 
-First, every decision gets an identity based on what it actually is — who the agent is, what asset it is buying or selling, how much, in which direction, with what price tolerance, and for how long it is valid — not based on the exact bytes of one transaction. That way, a replay, a gas bump, or a simple rerun all collapse into the same decision, instead of looking like three different trades.
-
-Second, that decision can only ever be in one of three states.
-
-If it is LIVE, an attempt for that decision is currently out in the world and not yet provably dead. The money for it is held aside, like a hold on a bank card: not spent yet, but not available to spend on anything else. While it is LIVE, no new attempt may be created for that decision. Retries are blocked, and the agent gets a clear answer instead of a vague timeout.
-
-If it is SETTLED, the trade has happened. The held money becomes spent money. If the agent tries again, it does not make a second trade. It just gets back the original receipt.
-
-If it is EXPIRED, the attempt is provably dead. Its deadline has passed, there was no settlement, and the money that was held aside is released. Only then is a new attempt safe, because the old one cannot come back to life.
-
-Third, the money held aside is capped across all decisions at once. That cap is called the money in the air. No matter how many decisions are live at the same time, the total amount that is unsettled can never go over that cap. That is what stops individually approved retries from adding up into damage: the budget is enforced for the decision and for the agent as a whole, not checked fresh on every single attempt.
-
-In short, the agent never has to guess from silence again. It gets one of three clear answers: settled with a receipt, live so do not retry, or expired so a new attempt is safe.
-
-### How OneShot knows, today
-
-Today, OneShot enforces this with a guard contract on NEAR. The agent sends its trade through the guard, not straight to the venue. The guard locks the reservation, forwards the trade to the venue, and then closes the loop with the venue's own on-chain callback: success means SETTLED, failure means EXPIRED and the reservation is released. If the deadline passes without a settlement, anyone can finalise the decision as EXPIRED, because that deadline is written into the decision itself.
-
-NEAR's fast finality — about 1.2 seconds — is what makes this practical. Waiting to know for sure takes seconds, not minutes, so the agent is not stuck waiting forever for one decision while it could be working on others.
-
-### What is built today, and what is next
-
-What is built today is the guard, the decision identity, the three-state lifecycle, and the money-in-the-air cap, verified in a private NEAR Sandbox with real on-chain guard verdicts. The sandbox demo uses a mock venue, so the guard's decisions are real, but the trade itself in that demo is simulated.
-
-What is next, and not yet built, is the full NEAR Intents version of the same idea: using the Verifier's one-time ticket number, the nonce, as the source of truth for whether an intent is live, settled, or dead, and connecting to a real venue instead of a mock one. That is the planned production path. It is not claimed as built here.
-
-## The problem
-
-An AI agent decides: *buy 500 NEAR of the asset*. It submits the trade. Execution is ambiguous — the ack is dropped, consensus is pending, the session hiccups. The agent's retry policy fires. Each retry is **individually approved** (passed the budget check), and together they can fill the same decision 5+ times. Traditional fix is a timeout — but a timeout never proves whether the first attempt landed. Timeouts can't distinguish `executed-but-silent` from `provably-dead`. OneShot can.
-
-## What OneShot does
-
-One **decision lifecycle** with two resolution paths, enforced by a NEAR contract:
-
-1. **Content-bound decision identity** — the decision is hashed from semantic facts (agent account, asset, size, direction, slippage, expiry), not transaction bytes. Replay, gas-bump, and rerun retry classes all collapse into one identity.
-2. **Three-state on-chain lifecycle** — `LIVE` (reservation locked) → `SETTLED` (consumed by the venue) or `EXPIRED` (provably dead, reservation released). Only downstream evidence — a real promise callback, or the objective passage of the identity's own expiry height — can resolve a state. A wall-clock timeout can never mint an execution.
-3. **Reservation engine ("money in the air")** — every attempt atomically locks spend against an agent-wide **in-flight ceiling**. Total unsettled exposure is a hard, on-chain cap across ALL decisions at once.
-4. **Zero-oracle resolution** — resolution is closed with native NEAR promise callbacks (the venue's own receipt settles the decision on-chain). No indexer, no external verifier, no trust base.
-5. **Scoped keys by design** — agents run with a function-call access key scoped to the guard (guard-bypass via the approval path is cryptographically impossible: the key authorized for spending can only call `execute_decision`).
-
-## Layout
-
-```
-oneshot/
-├── contract/          NEAR guard contract (Rust, near-sdk v5) + mock venue
-│   ├── Cargo.toml     oneshot-guard + mock-venue workspace
-│   └── src/lib.rs     decision registry, reservation engine, promise callback resolution
-├── sdk/               TypeScript SDK (@oneshot-guard/sdk) — decision key derivation,
-│                      wrapAgentWithOneShot, executeDecision, checkDecision
-├── api/               Live event-streamer: boots a private NEAR Sandbox, deploys the REAL
-│                      contract pair, drives naive-vs-guarded agents through the real
-│                      lifecycle, streams SimulationEvents over WebSocket (/ws)
-├── app/               Frontend (Vite + React): / landing, /demo chaos console (LIVE + Replay),
-│                      /how-it-works, /builders
-└── README.md
+```mermaid
+flowchart LR
+    A[Agent decides:\nbuy $500] --> B[Trade sent]
+    B --> C{Did it land?}
+    C -->|Filled, ack lost| D[Agent hears nothing]
+    C -->|Still pending| D
+    C -->|Never landed| D
+    D --> E[Agent retries]
+    E --> F[Same decision\nfills again — and again]
+    F --> G[$500 becomes $1,500\nNo rule was broken]
 ```
 
-## Quickstart
+## 2. The problem, stated precisely
+
+Execution is ambiguous. Between a decision and its confirmed settlement, there is a gap where a trade can be delayed, outbid, or confirmed-but-unacknowledged. In that gap:
+
+- A **timeout is not proof.** "I waited and heard nothing" cannot distinguish *executed-but-silent* from *provably-dead*.
+- A **retry limit is not proof either.** Even one retry leaves the agent blind about the first attempt — and a limit counts attempts, it does not prove outcomes.
+- **Per-transaction checks cannot catch this.** Every retry passes the budget check on its own. The damage only appears when you add the retries together.
+
+So the failure is not at the level of a transaction. It is at the level of a decision. Fixing it needs a decision-level guarantee, enforced somewhere the agent cannot talk its way around: on chain.
+
+## 3. The answer: a decision with a life story
+
+OneShot gives every decision an identity and a lifecycle, enforced by a NEAR smart contract called the guard. The agent never trades straight to the venue. It trades through the guard, and the guard remembers.
+
+### 3.1 One identity, however many attempts
+
+A decision's identity is a hash of what the decision *is* — the agent, the asset, the size, the direction, the price tolerance, and how long it is valid — not the bytes of one transaction. A replay, a gas bump, and a plain rerun therefore collapse into the same decision. They cannot pretend to be three different trades.
+
+### 3.2 Three states, and only three
+
+```mermaid
+stateDiagram-v2
+    [*] --> LIVE: guard reserves the money\nand forwards the trade
+    LIVE --> SETTLED: venue callback confirms\nthe fill on chain
+    LIVE --> EXPIRED: deadline passes\nwith no settlement
+    SETTLED --> [*]: retries return the\noriginal receipt, never a new fill
+    EXPIRED --> [*]: money released,\na new attempt is now safe
+```
+
+| State | What it means | What the agent gets back |
+|---|---|---|
+| **LIVE** | An attempt is out in the world and not yet provably dead. The money is held aside, like a hold on a card: not spent, but not available for anything else. | **PENDING** — "do not retry, this resolves by block height H." A retry is blocked on chain. |
+| **SETTLED** | The trade happened. The held money becomes spent money. | **The original receipt.** A retry never creates a second trade. |
+| **EXPIRED** | The attempt is provably dead: its deadline passed with no settlement, and the held money is released. | **Safe to try again.** Only now, because the old attempt cannot come back to life. |
+
+Only two things can move a decision out of LIVE, and neither is a wall-clock guess: the venue's own on-chain callback (settlement or failure), or the objective passing of the decision's own expiry block height. A timeout can never mint an execution.
+
+### 3.3 A cap on everything unsettled at once
+
+Every live decision locks spend against one agent-wide ceiling — the **money in the air**. No matter how many decisions are live at the same time, total unsettled exposure can never exceed that cap. The budget is enforced for the agent as a whole, not re-checked fresh on every attempt, which is exactly what stops individually approved retries from adding up into damage.
+
+### 3.4 Keys that cannot bypass the guard
+
+Agents run on a **function-call key scoped to the guard contract**. The key authorised to spend can only call `execute_decision`. There is no approval path that lets the agent quietly trade around the guard, because the key itself does not permit it. The language model only ever sees one tool: execute a decision. The guard is the only thing that touches money.
+
+```mermaid
+flowchart LR
+    LLM[Agent / LLM] -->|one tool:\nexecuteDecision| Guard[OneShot guard\noneshot-guard.testnet]
+    Guard -->|reserve + go LIVE| Venue[Venue]
+    Venue -->|on-chain callback| Guard
+    Guard -->|SETTLED or EXPIRED| LLM
+    Guard -.->|scoped function-call key\ncannot call venue directly| Venue
+```
+
+## 4. Proof on testnet, not a slide
+
+This is a working prototype on NEAR testnet, verified by chain reads — not a recorded demo of a local simulation.
+
+| Piece | Testnet account / link |
+|---|---|
+| Guard contract | [oneshot-guard.testnet](https://explorer.testnet.near.org/accounts/oneshot-guard.testnet) |
+| Venue (mock venue) | venue.oneshot-guard.testnet |
+| Mock verifier (stand-in for intents.near) | verifier.oneshot-guard.testnet |
+| Demo agent | agent.oneshot-guard.testnet |
+
+**Live demo run 1 — naive vs guarded, chain-read (5 Nov 2026):**
+
+| Side | What happened | Chain result |
+|---|---|---|
+| Naive agent, no guard | Called the venue directly, 3 times | **Filled 3 times** |
+| Guarded decision `4285793a…467438` | Went LIVE on chain, 0.01 NEAR reserved, venue filled once, settled by promise callback, money-in-air back to 0 | **Filled exactly once** — trade tx `GrEXMPm4QEjCBRkyCFzccfFcD42KLBgmZKdi7rPboTvM` |
+| Same guarded decision, retried 3 more times | Every retry hit the guard on chain | **Blocked 3/3** — "already SETTLED" |
+| Final venue fills, read from chain | 3 naive + 1 guarded | **4, exactly as designed** |
+
+Full hashes, logs and verifier results: [`STATUS-TESTNET.md`](STATUS-TESTNET.md).
+
+**Unit tests (all passing):** guard contract 13/13 · agent loop 7/7 · Intents adapter 3/3 · mock verifier 5/5.
+
+## 5. Current scope
+
+| Built and verified | Planned, not yet built |
+|---|---|
+| Guard, decision identity, three-state lifecycle, money-in-air cap, cancel, scoped keys — on testnet, on chain | A real DEX trade. The testnet venue is a **mock venue**: it always fills, so it tests the guard's mechanics, not a real market. |
+| Intents adapter code (nonce = salt + decision hash, deadline, token_diff), tested against a mock verifier on testnet | A real Intents settlement. The testnet verifier is a **mock verifier**, not intents.near. It checks no NEP-413 signature and settles nothing cross-chain. |
+| A working agent loop that retries correctly: same parameters every attempt, PENDING treated as "not failure" | A published npm package and a hosted demo — see [Roadmap](#8-roadmap). |
+| Testnet deployment, persistent and clickable | Mainnet deployment. `oneshot-guard.near` is planned, not deployed. |
+
+## 6. How a developer runs it
+
+### 6.1 Verify it yourself
+
+```bash
+# Prove the invariants — no network, no wallet
+cd contract && cargo test
+# → 13 passed, 0 failed: retry-blocked, settled-permanent,
+#   failure-releases, ceiling-reverts, supersede, expiry, cancel
+
+# Prove the agent loop
+cd api && bun run src/agent-loop.test.ts
+# → 7 checks: same parameters on every retry, PENDING is not failure
+```
+
+Then open the testnet explorer links in section 4 and compare: naive fills 3, guarded fills 1, guarded retries blocked 3/3.
+
+### 6.2 Full local run
 
 Requires: Rust (wasm32-unknown-unknown target), Node 22+, [bun](https://bun.sh).
 
@@ -103,11 +164,9 @@ bun run api             # → ws://localhost:8787/ws
 cd app && bun install && bun run dev    # → http://localhost:3000/demo
 ```
 
-Then open **http://localhost:3000/demo**, toggle **LIVE MODE** (default when `VITE_API_URL` is set), and press **Run**. The console streams a real sandbox run: naive agent fills ×6 while guarded agent blocks ×5 — every block is an on-chain verdict, not a mock.
+Open **http://localhost:3000/demo**, toggle **LIVE MODE** (default when `VITE_API_URL` is set), and press **Run**. The console streams a real run: naive fills, guarded blocks — every block is an on-chain verdict. Unset `VITE_API_URL` in `app/.env` for **Replay Mode** instead: deterministic and simulated.
 
-To run in **Replay Mode** instead (deterministic, no sandbox): unset `VITE_API_URL` in `app/.env`.
-
-## SDK
+### 6.3 Use the SDK in your own agent
 
 ```typescript
 import { wrapAgentWithOneShot, decisionKey } from '@oneshot-guard/sdk';
@@ -115,7 +174,7 @@ import { wrapAgentWithOneShot, decisionKey } from '@oneshot-guard/sdk';
 const guarded = wrapAgentWithOneShot(
   { accountId: 'my-agent.near', secretKey: process.env.AGENT_SECRET_KEY },
   {
-    guardContract: process.env.GUARD_CONTRACT!, // deployed guard account
+    guardContract: process.env.GUARD_CONTRACT!, // e.g. oneshot-guard.testnet
     maxInFlightCeiling: '100000000000000000000000000',
     near: { networkId: 'testnet', nodeUrl: 'https://rpc.testnet.near.org' },
     venue: { contract: 'v1.rhea-exchange.near', method: 'execute' },
@@ -123,11 +182,11 @@ const guarded = wrapAgentWithOneShot(
   }
 );
 
-// Registers (or tightens) the agent's on-chain in-flight cap. Idempotent.
-await guarded.ensureCeiling();
+await guarded.ensureCeiling(); // idempotent: registers/tightens the on-chain cap
 
-// One decision → at most one live execution. LIVE/SETTLED rejections are
-// deterministic; the SDK resolves the lifecycle by on-chain evidence.
+// One decision → at most one live execution.
+// LIVE/SETTLED rejections are deterministic; the SDK resolves the
+// lifecycle by on-chain evidence, never by a local timer.
 const result = await guarded.executeDecision({
   asset: 'NEAR/USDC',
   size: 500,
@@ -136,45 +195,66 @@ const result = await guarded.executeDecision({
   expirySec: 60,
 });
 
-// Audit any decision at any time:
 const view = await guarded.checkDecision(result.decisionId); // LIVE | SETTLED | EXPIRED
 ```
 
-`decisionKey(agentAccount, params)` — the identity scheme the contract uses — is exported alone so indexers and auditors can precompute the same key from your agent's intent log.
+`decisionKey(agentAccount, params)` is exported alone, so indexers and auditors can precompute the same key from an agent's intent log.
 
-## Contract surface
+**Installation note:** the SDK is currently used from this repository's workspace (`sdk/`, package `@oneshot-guard/sdk`, v0.1.0). It is not yet published to npm — see [Roadmap](#8-roadmap).
+
+## 7. Contract surface
 
 | Method | Kind | Meaning |
-| --- | --- | --- |
+|---|---|---|
 | `execute_decision(args)` | change + payable | Reserve → go LIVE → forward to venue → resolution callback. LIVE/SETTLED identities deterministically reject. |
 | `on_resolution(id)` | callback (private) | Promise settlement: success → SETTLED, failure → EXPIRED + release. |
-| `resolve_expired(id)` | change | Anybody may finalize an identity whose height-expiry objectively passed. |
+| `resolve_expired(id)` | change | Anybody may finalise an identity whose height-expiry objectively passed. |
+| `cancel_decision(id)` | change | Executor-only, LIVE-only → EXPIRED + release. Guard state only: on the Intents path, the nonce must also be invalidated. |
 | `set_agent_config(ceiling)` | change | Agent's in-flight ceiling. |
 | `get_decision(id)` / `get_in_air(agent)` / `get_agent_config(agent)` | view | Lifecycle audit trail. |
 
-## Verification
+Layout:
 
-Run it all locally — every claim below is a command, not prose:
-
-```bash
-cd contract && cargo test        # 10 unit tests: retry-blocked, settled-permanent,
-                                 # failure-releases, ceiling-reverts, supersede, expiry
-cd api && bun run src/index.ts   # boots a private NEAR Sandbox, deploys the real wasm pair,
-                                 # then any /demo LIVE run shows only real verdicts
+```
+oneshot/
+├── contract/          NEAR guard contract (Rust, near-sdk v5) + mock venue
+│   ├── Cargo.toml     oneshot-guard + mock-venue workspace
+│   └── src/lib.rs     decision registry, reservation engine, promise callback resolution
+├── contract/mock-verifier/  Testnet stand-in for intents.near (nonce, deadline, settled)
+├── sdk/               TypeScript SDK (@oneshot-guard/sdk) — decision key, wrapAgentWithOneShot,
+│                      executeDecision, checkDecision, scoped-key helper, PENDING semantics
+├── adapter/           NEAR Intents adapter — buildIntentPayload, simulateIntent, dryQuote, status mapping
+├── api/               Live event-streamer + agent loop (WebSocket /ws), testnet demo scripts
+├── app/               Frontend (Vite + React): landing, demo chaos console (LIVE + Replay),
+│                      how-it-works, builders
+├── scripts/           Testnet deploy / demo / verifier scripts (keys read from
+│                      ~/.near-credentials/testnet/, never committed)
+├── STATUS-TESTNET.md  Verified testnet status, hashes, and limitations
+└── README.md
 ```
 
-Unit tests prove the invariants: a retry while LIVE is rejected; a SETTLED decision keeps rejecting forever; a failed downstream call provably releases the reservation and permits a fresh attempt; the ceiling reverts atomically; supersede never double-counts; expiry transitions only past the objective height.
+## 8. Roadmap
 
-## Tracks
+1. **Hosted demo** — deploy the frontend (Vite static build) to Vercel, pointed at the testnet deployment, and keep it up through judging.
+2. **Publish the SDK to npm** — build `sdk/` to a `dist/` (today its entry point is TypeScript source) and publish `@oneshot-guard/sdk` publicly.
+3. **Real testnet venue** — replace the mock venue in the demo with a real Ref Finance testnet swap (testnet NEAR for testnet USDC).
+4. **Real 1Click dry quote** — complete a `dry: true` quote with the correct token id from the 1Click token list.
 
-Primary: **AI Security & Defense** — this is a defense mechanism for financial agent autonomy.
-Secondary: **Unstoppable DeFi** — security at the settlement layer of permissionless execution.
+## 9. Built with
 
-## Status & honest notes
+| Layer | Stack |
+|---|---|
+| Guard contract | Rust, near-sdk 5.17, Cargo |
+| Venue / verifier (testnet) | Rust, near-sdk 5.17 |
+| SDK & agent loop | TypeScript, near-api-js |
+| API | TypeScript, Bun |
+| Demo app | Vite, React |
+| Chain | NEAR testnet (RPC, explorer) |
 
-- Contracts verified in a private NEAR Sandbox (near-workspaces v5) with REAL on-chain verdicts; unit tests cover the invariants above.
-- Mainnet deployment (`oneshot-guard.near`) is planned for post-hackathon; nothing here depends on that address.
-- The SDK's `executeDecision` talks to any deployed guard; venue adapters target Rhea (direct promise) and NEAR Intents (via 1Click status reads) — the sandbox demo uses the bundled mock venue harness so the guard's mechanics are the thing under test.
+## 10. Tracks
+
+- **Primary — AI Security & Defense (`security`):** spending limits, policy engines, sandboxed wallets. OneShot is a defense mechanism for financial agent autonomy: scoped keys, a hard money-in-air cap, and an on-chain exactly-once guarantee.
+- **Secondary — Unstoppable DeFi (`defi`):** security at the settlement layer of permissionless execution. The guard protects DeFi trades from multiplying; the Intents adapter is the path to cross-chain settlement.
 
 ## License
 

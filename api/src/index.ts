@@ -17,6 +17,8 @@ import path from "node:path";
 import { Worker } from "near-workspaces";
 const NEAR24 = (n: number | bigint) => (BigInt(n) * 10n ** 24n).toString();
 import { decisionKey } from "@oneshot-guard/sdk";
+import { agentTradeTool } from "./agent-loop";
+import type { DecisionParamsLike, DecisionResultLike, DecisionViewLike, GuardedLike } from "./agent-loop";
 import type { SimulationEvent, SimulationConfig, RetryClass } from "../app-types";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -32,7 +34,7 @@ const VENUE_WASM = path.resolve(
 type NearAccount = any; // near-workspaces NearAccount
 let worker: any = null;
 
-async function boot(): Promise<{ guard: NearAccount; venue: NearAccount }> {
+async function boot(): Promise<{ guard: NearAccount; venue: NearAccount; naiveVenue: NearAccount }> {
   if (!worker) {
     worker = await Worker.init();
   }
@@ -47,7 +49,15 @@ async function boot(): Promise<{ guard: NearAccount; venue: NearAccount }> {
     method: "new",
     initialBalance: NEAR24(50),
   });
-  return { guard, venue };
+  // Step 2: separate venue for the naive side, so its chain-read fill
+  // count is naive-only and is not polluted by the guarded side's 1 fill.
+  // Same wasm, same behaviour — only the deployment is separate.
+  const naiveVenue = await root.devDeploy(VENUE_WASM, {
+    args: {},
+    method: "new",
+    initialBalance: NEAR24(50),
+  });
+  return { guard, venue, naiveVenue };
 }
 
 // ── event helpers (app-compatible schema) ───────────────────────────────────
@@ -71,7 +81,7 @@ class RunCtx {
 const CLASSES = ["replay", "bump", "rerun"] as const;
 
 async function runChaos(config: SimulationConfig, emit: (e: SimulationEvent) => void) {
-  const { guard, venue } = await boot();
+  const { guard, venue, naiveVenue } = await boot();
   const ctx = new RunCtx(emit);
 
   // fresh agent accounts per run (isolate reservations & ceilings)
@@ -116,22 +126,34 @@ async function runChaos(config: SimulationConfig, emit: (e: SimulationEvent) => 
   );
   const ceil = NEAR24(Math.max(2, config.retryCount + 2) * nearPerFill);
 
+  // Step 2 chain-read baseline: naive-venue fills are read back from the
+  // chain, not counted by the script. If the deployed venue wasm predates
+  // get_fills, fall back to 0 (and the run is labelled script-counted).
+  const venueFills = async (): Promise<number | null> =>
+    naiveVenue.view("get_fills", {}).then((v: any) => Number(v)).catch(() => null);
+  const fillsBaseline = (await venueFills()) ?? 0;
+
   let blockHeight = await currentHeight(worker);
   const expiryHeight = blockHeight + config.resolutionDelay * 3 + 500;
 
   // ── attempt #1: both sides, in parallel ───────────────────────────────────
-  const naive1 = naiveAttempt(ctx, naiveAcc, venue, idStr, 1, depositYocto, config);
+  const naive1 = naiveAttempt(ctx, naiveAcc, naiveVenue, idStr, 1, depositYocto, config);
   const os1 = guardedAttempt(ctx, osAcc, guard, venue, fullId, idStr, expiryHeight, depositYocto, ceil, config, true);
   const [nTx, _osRes] = await Promise.all([naive1, os1]);
   void nTx;
 
-  // naive side got filled once even though the ack was swallowed
-  let naiveFills = 1;
-  let naiveDamage = 0;
+  // naive side got filled once even though the ack was swallowed.
+  // Chain-read, not script-counted: fills are read back from the
+  // naive-only venue, so the guarded side's 1 fill cannot pollute it.
+  const fillsAfterAttempt1 = (await venueFills()) ?? fillsBaseline + 1;
+  let naiveFills = Math.max(0, fillsAfterAttempt1 - fillsBaseline);
+  let naiveDamage = naiveFills * config.decisionSize;
   ctx.ev("unprotected", idStr, "fill", {
     attempt: 1,
     amount: config.decisionSize,
-    wallet_balance: 10000 - config.decisionSize,
+    venue_fills_chain_read: fillsAfterAttempt1,
+    damage_chain_read: naiveDamage,
+    wallet_balance: 10000 - naiveDamage,
     message: `fill_confirmed_on_chain  attempt=1  amount=$${config.decisionSize}`,
   });
 
@@ -142,15 +164,20 @@ async function runChaos(config: SimulationConfig, emit: (e: SimulationEvent) => 
     await sleep(interval * 1000);
     const attempt = i + 1;
 
-    await naiveAttempt(ctx, naiveAcc, venue, idStr, attempt, depositYocto, config, CLASSES[(i - 1) % 3]);
-    naiveFills += 1;
-    naiveDamage += config.decisionSize;
+    await naiveAttempt(ctx, naiveAcc, naiveVenue, idStr, attempt, depositYocto, config, CLASSES[(i - 1) % 3]);
+    // Chain-read again: damage follows actual venue fills, not attempts.
+    const fillsNow = (await venueFills()) ?? fillsBaseline + naiveFills + 1;
+    const prevDamage = naiveDamage;
+    naiveFills = Math.max(0, fillsNow - fillsBaseline);
+    naiveDamage = naiveFills * config.decisionSize;
     ctx.ev("unprotected", idStr, "fill", {
       attempt,
       amount: config.decisionSize,
       duplicate_fills: naiveFills - 1,
       damage: naiveDamage,
-      wallet_balance: 10000 - naiveFills * config.decisionSize,
+      damage_delta_chain_read: naiveDamage - prevDamage,
+      venue_fills_chain_read: fillsNow,
+      wallet_balance: 10000 - naiveDamage,
       message: `DUPLICATE_FILL  attempt=${attempt}  damage=+$${config.decisionSize}  cum_damage=$${naiveDamage}`,
     });
 
@@ -207,6 +234,94 @@ async function naiveAttempt(
   return out;
 }
 
+// ── Step 2: the guarded side now goes through the agent trade tool ─────────
+// The demo agent no longer calls the guard contract directly. It calls
+// agentTradeTool with the SAME params object on every attempt (the loop
+// never changes trigger or expiry, so the decision identity cannot drift),
+// and the adapter below is the only place that touches the chain.
+// PENDING is the tool's answer for LIVE, whether that LIVE came from a
+// fresh reservation (first attempt) or a blocked retry (later attempts);
+// runChaos distinguishes those two by position, not by inventing a state.
+function guardedAdapter(
+  agent: NearAccount,
+  guard: NearAccount,
+  venue: NearAccount
+): GuardedLike {
+  return {
+    decisionKey: (p: DecisionParamsLike) => decisionKey(agent.accountId, p),
+    checkDecision: async (id: string): Promise<DecisionViewLike | null> => {
+      const v = await guard.view("get_decision", { decision_id: id }).catch(() => null);
+      if (!v) return null;
+      const state = v.state === "Live" ? "LIVE" : v.state === "Settled" ? "SETTLED" : "EXPIRED";
+      return { decision_id: id, state, expiry_height: String(v.expiry_height) };
+    },
+    executeDecision: async (p: DecisionParamsLike): Promise<DecisionResultLike> => {
+      const id = decisionKey(agent.accountId, p);
+      const deposit = p.depositYocto ?? "0";
+      // Sandbox block pacing (matches the old fresh-expiry formula):
+      // expirySec in seconds, roughly 3 blocks per second in sandbox.
+      const expiryHeight = (await currentHeight(worker)) + p.expirySec * 3 + 50;
+      const args = {
+        decision_id: id,
+        venue: venue.accountId,
+        method: "execute",
+        args: JSON.stringify({ asset: p.asset, direction: p.direction, slippage: p.slippageTolerance }),
+        deposit,
+        expiry_height: expiryHeight,
+      };
+      try {
+        const outcome = await agent.call(
+          guard.accountId,
+          "execute_decision",
+          { args },
+          { attachedDeposit: BigInt(deposit) }
+        );
+        const view = await guard.view("get_decision", { decision_id: id }).catch(() => null);
+        return {
+          decisionId: id,
+          state: "LIVE",
+          view: view
+            ? { decision_id: id, state: "LIVE", expiry_height: String(view.expiry_height) }
+            : null,
+          attestation: outcome,
+          safeToRetry: false,
+          pending: true,
+          resolvesByHeight: expiryHeight,
+        };
+      } catch (err: any) {
+        const msg = String(err?.message ?? err);
+        if (msg.includes("state is LIVE")) {
+          const view = await guard.view("get_decision", { decision_id: id }).catch(() => null);
+          return {
+            decisionId: id,
+            state: "LIVE",
+            view: view
+              ? { decision_id: id, state: "LIVE", expiry_height: String(view.expiry_height) }
+              : null,
+            attestation: null,
+            safeToRetry: false,
+            pending: true,
+            resolvesByHeight: view ? Number(view.expiry_height) : expiryHeight,
+          };
+        }
+        if (msg.includes("already SETTLED")) {
+          const view = await guard.view("get_decision", { decision_id: id }).catch(() => null);
+          return {
+            decisionId: id,
+            state: "SETTLED",
+            view: view
+              ? { decision_id: id, state: "SETTLED", expiry_height: String(view.expiry_height) }
+              : null,
+            attestation: null,
+            safeToRetry: false,
+          };
+        }
+        throw err;
+      }
+    },
+  };
+}
+
 async function guardedAttempt(
   ctx: RunCtx,
   agent: NearAccount,
@@ -214,7 +329,7 @@ async function guardedAttempt(
   venue: NearAccount,
   fullId: string,
   idStr: string,
-  expiryHeight: number,
+  _expiryHeight: number,
   depositYocto: string,
   ceiling: string,
   config: SimulationConfig,
@@ -225,52 +340,25 @@ async function guardedAttempt(
     message: `execute_decision  identity=${idStr}  attempt=${first ? 1 : "→"}`,
   });
 
-  const args = {
-    decision_id: fullId,
-    venue: venue.accountId,
-    method: "execute",
-    args: JSON.stringify({ asset: "NEAR/USDC", direction: "BUY", slippage: 0.005 }),
-    deposit: depositYocto,
-    expiry_height: expiryHeight,
+  // Same params object on every attempt: identity is content-bound, so
+  // this is the same decision the tool already holds LIVE, not a new one.
+  const params: DecisionParamsLike = {
+    asset: "NEAR/USDC",
+    size: config.decisionSize,
+    direction: "BUY",
+    slippageTolerance: 0.005,
+    expirySec: config.resolutionDelay + 60,
+    depositYocto,
   };
-
-  let blocked = false;
-  let blockedReason: string | undefined;
-  try {
-    await agent.call(
-      guard.accountId,
-      "execute_decision",
-      { args },
-      { attachedDeposit: BigInt(depositYocto) }
-    );
-  } catch (err: any) {
-    const msg = String(err?.message ?? err);
-    if (msg.includes("state is LIVE")) {
-      blocked = true;
-      blockedReason = "LIVE";
-    } else if (msg.includes("already SETTLED")) {
-      blocked = true;
-      blockedReason = "SETTLED";
-    } else if (msg.includes("ceiling")) {
-      blocked = true;
-      blockedReason = "CEILING";
-    } else {
-      throw err;
-    }
+  const guarded = guardedAdapter(agent, guard, venue);
+  const result = await agentTradeTool(guarded, params);
+  // Sanity: the tool's identity must match the identity runChaos tracks.
+  if (result.decisionId !== fullId) {
+    throw new Error(`guardedAttempt: tool identity ${result.decisionId} != tracked ${fullId}`);
   }
 
-  if (blocked) {
-    const inAir = Number(await guard.view("get_in_air", { agent: agent.accountId }));
-    ctx.ev("oneshot", idStr, "retry_blocked", {
-      reason: blockedReason,
-      amount: config.decisionSize,
-      in_air: inAir / 1e24,
-      ceiling: Number(ceiling) / 1e24,
-      message: `${blockedReason}: retry blocked by guard  state readable on-chain  reservation intact`,
-    });
-  } else {
-    // LIVE + reservation: read in-air as proof the reservation is REAL on-chain
-    const inAir = Number(await guard.view("get_in_air", { agent: agent.accountId }));
+  const inAir = Number(await guard.view("get_in_air", { agent: agent.accountId }).catch(() => 0));
+  if (result.kind === "PENDING" && first) {
     ctx.ev("oneshot", idStr, "decision_live", {
       reserved: Number(depositYocto) / 1e24,
       in_air: inAir / 1e24,
@@ -281,7 +369,29 @@ async function guardedAttempt(
       attempt: 1,
       message: `Waiting for consensus… [live sandbox · real receipt]`,
     });
+  } else if (result.kind === "PENDING") {
+    ctx.ev("oneshot", idStr, "retry_blocked", {
+      reason: "LIVE",
+      amount: config.decisionSize,
+      in_air: inAir / 1e24,
+      ceiling: Number(ceiling) / 1e24,
+      message: `LIVE: retry blocked by guard  state readable on-chain  reservation intact`,
+    });
+  } else if (result.kind === "SETTLED") {
+    ctx.ev("oneshot", idStr, "retry_blocked", {
+      reason: "SETTLED",
+      amount: config.decisionSize,
+      in_air: inAir / 1e24,
+      ceiling: Number(ceiling) / 1e24,
+      message: `SETTLED: retry blocked by guard  stored receipt returned, no new execution`,
+    });
+  } else {
+    ctx.ev("oneshot", idStr, "decision_expired", {
+      amount: config.decisionSize,
+      message: `EXPIRED: safe to retry  reservation released`,
+    });
   }
+  return result;
 }
 
 async function waitForResolution(guard: NearAccount, decisionId: string, maxMs = 20_000) {

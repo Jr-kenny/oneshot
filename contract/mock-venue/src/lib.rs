@@ -21,6 +21,12 @@ impl MockVenue {
 
 #[near]
 impl MockVenue {
+    /// Chain-read fill count for Step 2: the demo must read damage from
+    /// here, not count its own calls. No state change, view only.
+    pub fn get_fills(&self) -> u64 {
+        self.fills
+    }
+
     /// Payload: JSON {asset, direction, slippage, decision_id}.
     /// Returns a fill receipt. Deliberately simple: the *guard* is the show.
     #[payable]

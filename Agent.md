@@ -85,9 +85,12 @@ Build the actual product. Leverage the ecosystem. Prove that it works. Make it d
 
 Before claiming anything is done or real, check it against this list:
 
-- Contract: `cd contract && cargo test` — all 10 unit tests must pass: retry-blocked, settled-permanent, failure-releases, ceiling-reverts, supersede, and expiry.
-- Live demo: `bun run api` boots a private NEAR Sandbox and deploys the real contract pair. Only LIVE mode runs count as real on-chain verdicts.
+- Contract: `cd contract && cargo test` — all 13 unit tests must pass: retry-blocked, settled-permanent, failure-releases, ceiling-reverts, supersede, and expiry, plus cancel-by-executor-releases, cancel-by-non-executor-rejected, and cancel-of-settled-rejected (Step 1, tested 2026-11-05: 13 passed, 0 failed).
+- Agent loop: `bun test api/src/agent-loop.test.ts` — 7 checks, same params on every retry, PENDING is not failure (Step 2, tested 2026-11-05).
+- Intents adapter: `bun test adapter/intents-adapter.test.ts` — 3 checks, same decision + salt = same nonce (Step 3, tested 2026-11-05).
+- Mock verifier: `cd contract/mock-verifier && cargo test` — 5 checks, publish/settle/replay-block/expiry (Step 3, tested 2026-11-05).
+- Live demo: testnet run 1 (2026-11-05, STATUS-TESTNET.md) is the current real on-chain verdict: guard oneshot-guard.testnet, venue venue.oneshot-guard.testnet, naive fills 3, guarded fills 1, guarded retries blocked 3/3 as already SETTLED, final fills 4 chain-read. Only LIVE testnet runs count as real on-chain verdicts. The earlier private sandbox runs are superseded by this testnet run for the same code, because the old sandbox (neard 2.6.2, protocol 77) rejects this near-sdk 5 wasm while testnet (protocol 88) accepts it.
 - Replay mode is deterministic and simulated. Label it as simulated. Never present it as an on-chain verdict.
-- The sandbox mock venue is a harness to test the guard's mechanics. It is not a real venue integration. Rhea (direct promise) and NEAR Intents (via 1Click status reads) are venue targets — do not claim them as live integrations unless verified.
-- Mainnet deployment (`oneshot-guard.near`) is planned for post-hackathon. It is not deployed. Do not claim a mainnet address, transaction, or deployment that does not exist.
+- The testnet mock venue is a harness to test the guard's mechanics. It is not a real venue integration. The testnet mock verifier is a stand-in for intents.near, not intents.near itself. Rhea (direct promise) and NEAR Intents (via 1Click status reads) are venue targets — do not claim them as live integrations unless verified. No mainnet Intents settlement is claimed; 1Click dry quote and simulate_intents probes are documented with their limits in STATUS-TESTNET.md.
+- Mainnet deployment (`oneshot-guard.near`) is planned for post-hackathon. It is not deployed. Do not claim a mainnet address, transaction, or deployment that does not exist. Testnet deployment (oneshot-guard.testnet) is for verification only and is not the author's rewards account.
 - For every feature in a status update, demo, README, or submission, label it as implemented, tested, deployed, simulated, or planned. If it cannot be verified, say so.

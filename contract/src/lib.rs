@@ -296,6 +296,38 @@ impl OneShotGuard {
         );
     }
 
+    /// Executor-only cancel of a LIVE decision.
+    ///
+    /// Guard-state cancel only: it moves the guard record to EXPIRED and
+    /// releases the reservation, so a fresh attempt with the same identity
+    /// is safe *from the guard's point of view*.
+    ///
+    /// For the NEAR Intents path this is NOT sufficient on its own: the
+    /// intent's nonce must also be invalidated on-chain (or its deadline
+    /// must have passed with no settlement) before the decision is treated
+    /// as EXPIRED, otherwise the intent could still settle after cancel.
+    /// Callers for the Intents path must check that invalidation first and
+    /// only then call this, or use a dedicated Intents cancel flow.
+    pub fn cancel_decision(&mut self, decision_id: String) {
+        let mut rec = self
+            .decisions
+            .get(&decision_id)
+            .unwrap_or_else(|| env::panic_str("ONESHOT: unknown decision"))
+            .clone();
+        require!(rec.state == DecisionState::Live, "ONESHOT: already resolved");
+        require!(
+            rec.executor == env::predecessor_account_id(),
+            "ONESHOT: only the executor may cancel"
+        );
+        rec.state = DecisionState::Expired;
+        self.release_in_air(&rec);
+        self.decisions.insert(decision_id.clone(), rec.clone());
+        Self::emit(
+            "decision_expired",
+            serde_json::json!({ "decision_id": decision_id, "reason": "cancelled_by_executor" }),
+        );
+    }
+
     // ── views ─────────────────────────────────────────────────────────────
 
     pub fn get_decision(&self, decision_id: String) -> Option<DecisionView> {
@@ -523,5 +555,55 @@ mod tests {
         let mut g = fresh_guard();
         testing_env!(actor_ctx(&accounts(2), 10, 400).build());
         g.execute_decision(exec_args("0x1234", 400, 50));
+    }
+
+    /// 11) Executor cancel releases the reservation and allows a fresh attempt.
+    #[test]
+    fn cancel_by_executor_releases_and_allows_fresh_attempt() {
+        let mut g = fresh_guard();
+        testing_env!(actor_ctx(&accounts(2), 10, 400).build());
+        g.execute_decision(exec_args(ID, 400, 50));
+        assert_eq!(g.get_in_air(accounts(2)), U128(400));
+
+        testing_env!(actor_ctx(&accounts(2), 12, 0).build());
+        g.cancel_decision(ID.to_string());
+
+        assert_eq!(g.get_decision(ID.to_string()).unwrap().state, DecisionState::Expired);
+        assert_eq!(g.get_in_air(accounts(2)), U128(0));
+
+        testing_env!(actor_ctx(&accounts(2), 13, 400).build());
+        g.execute_decision(exec_args(ID, 400, 60));
+        assert_eq!(g.get_decision(ID.to_string()).unwrap().state, DecisionState::Live);
+    }
+
+    /// 12) Cancel by a non-executor is rejected.
+    #[test]
+    #[should_panic(expected = "only the executor may cancel")]
+    fn cancel_by_non_executor_rejected() {
+        let mut g = fresh_guard();
+        testing_env!(actor_ctx(&accounts(2), 10, 400).build());
+        g.execute_decision(exec_args(ID, 400, 50));
+
+        // accounts(3) is not the executor (accounts(2) in fresh_guard tests).
+        testing_env!(actor_ctx(&accounts(3), 12, 0).build());
+        g.cancel_decision(ID.to_string());
+    }
+
+    /// 13) Cancel of a settled decision is rejected.
+    #[test]
+    #[should_panic(expected = "already resolved")]
+    fn cancel_of_settled_rejected() {
+        let mut g = fresh_guard();
+        testing_env!(actor_ctx(&accounts(2), 10, 400).build());
+        g.execute_decision(exec_args(ID, 400, 50));
+        let guard_acc = accounts(2);
+        testing_env_with_promise_results(
+            { let mut ctx = actor_ctx(&guard_acc, 12, 0); ctx.signer_account_id(guard_acc.clone()); ctx.build() },
+            PromiseResult::Successful(b"ok".to_vec()),
+        );
+        g.on_resolution(ID.to_string());
+
+        testing_env!(actor_ctx(&accounts(2), 14, 0).build());
+        g.cancel_decision(ID.to_string());
     }
 }
