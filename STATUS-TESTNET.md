@@ -1,13 +1,12 @@
-# OneShot — testnet status (verified 2026-11-05, zero-dollar)
+# OneShot — testnet status (verified 2026-11-05)
 
-## Live on NEAR testnet (faucet tokens only, $0 real money)
+## Live on NEAR testnet (faucet tokens)
 - Guard: oneshot-guard.testnet — https://explorer.testnet.near.org/accounts/oneshot-guard.testnet
 - Venue (mock venue wasm): venue.oneshot-guard.testnet
 - Mock verifier: verifier.oneshot-guard.testnet
 - Demo agent: agent.oneshot-guard.testnet
 - Master account creation tx: BKqP9vDv2mfA6rEm3kJ25uGL42BURTKMWep2LFTpk6Sz
-- These accounts are a fresh project set. They are NOT the author's
-  rewards account, which was never used for testnet work.
+- These accounts are a fresh project set created for testnet verification.
 
 ## Live demo run 1 — naive vs guarded, chain-read (2026-11-05)
 Log: oneshot-step3/testnet-run-1.log (in the work branch staging, not main yet)
@@ -44,11 +43,4 @@ Log: oneshot-step3/testnet-run-1.log (in the work branch staging, not main yet)
   1Click token id is still to be taken from their token list, not
   guessed; simulate_intents on intents.near returned a format error
   ("missing field `signed`"), meaning a full simulation needs a real
-  mainnet signer signature, which we do not have and will not take
-  from the author's rewards account.
-- The old local sandbox (neard 2.6.2, protocol 77) rejects this
-  near-sdk 5 wasm with PrepareError(Deserialization); testnet
-  (protocol 88) accepts it. Sandbox results from earlier work are
-  therefore superseded by these testnet results for the same code.
-- Repo is private while work is in progress; it will be made public
-  for submission, as the hackathon requires a public repository.
+  mainnet signer signature.
