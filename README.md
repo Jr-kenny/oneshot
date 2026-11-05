@@ -2,7 +2,7 @@
 
 > **One decision. One shot.** Ambiguous execution is how approved agents multiply trades: every retry was individually approved, and together they can do real damage. OneShot makes decision execution exactly-once, enforced on-chain.
 
-[![tests](https://img.shields.io/badge/contract_tests-10%2F10_passing-2BD576)](#verification) [![sandbox](https://img.shields.io/badge/live_sandbox_verified-real_on--chain_verdicts-2BD576)](#verification)
+[![tests](https://img.shields.io/badge/contract_tests-13%2F13_passing-2BD576)](#verification) [![testnet](https://img.shields.io/badge/live_testnet_verified-real_on--chain_verdicts-2BD576)](#verification)
 
 ## The problem, in plain English
 
@@ -48,9 +48,9 @@ NEAR's fast finality — about 1.2 seconds — is what makes this practical. Wai
 
 ### What is built today, and what is next
 
-What is built today is the guard, the decision identity, the three-state lifecycle, and the money-in-the-air cap, verified in a private NEAR Sandbox with real on-chain guard verdicts. The sandbox demo uses a mock venue, so the guard's decisions are real, but the trade itself in that demo is simulated.
+What is built today is the guard, the decision identity, the three-state lifecycle, and the money-in-the-air cap, verified on NEAR testnet with real on-chain guard verdicts (see STATUS-TESTNET.md): guard on oneshot-guard.testnet, venue on venue.oneshot-guard.testnet, mock verifier on verifier.oneshot-guard.testnet. In the testnet demo, the naive agent filled 3 times while the guarded decision filled exactly once and 3 further guarded retries were blocked on chain as already SETTLED. The testnet venue is a mock venue and the testnet verifier is a mock verifier, both labelled as such — the guard's decisions are real, the trade and the Intents settlement in that demo are not yet real.
 
-What is next, and not yet built, is the full NEAR Intents version of the same idea: using the Verifier's one-time ticket number, the nonce, as the source of truth for whether an intent is live, settled, or dead, and connecting to a real venue instead of a mock one. That is the planned production path. It is not claimed as built here.
+What is next, and not yet built, is a real mainnet Intents settlement: using the Verifier's one-time ticket number, the nonce, as the source of truth for whether an intent is live, settled, or dead, with a real venue instead of a mock one, and a 1Click dry quote with the correct token id. That is the planned production path. It is not claimed as built here.
 
 ## The problem
 
@@ -157,7 +157,7 @@ const view = await guarded.checkDecision(result.decisionId); // LIVE | SETTLED |
 Run it all locally — every claim below is a command, not prose:
 
 ```bash
-cd contract && cargo test        # 10 unit tests: retry-blocked, settled-permanent,
+cd contract && cargo test        # 13 unit tests: retry-blocked, settled-permanent,
                                  # failure-releases, ceiling-reverts, supersede, expiry
 cd api && bun run src/index.ts   # boots a private NEAR Sandbox, deploys the real wasm pair,
                                  # then any /demo LIVE run shows only real verdicts
@@ -172,9 +172,9 @@ Secondary: **Unstoppable DeFi** — security at the settlement layer of permissi
 
 ## Status & honest notes
 
-- Contracts verified in a private NEAR Sandbox (near-workspaces v5) with REAL on-chain verdicts; unit tests cover the invariants above.
-- Mainnet deployment (`oneshot-guard.near`) is planned for post-hackathon; nothing here depends on that address.
-- The SDK's `executeDecision` talks to any deployed guard; venue adapters target Rhea (direct promise) and NEAR Intents (via 1Click status reads) — the sandbox demo uses the bundled mock venue harness so the guard's mechanics are the thing under test.
+- Contracts verified on NEAR testnet with REAL on-chain verdicts (STATUS-TESTNET.md); unit tests cover the invariants above. Guard contract tests: 13/13. Agent loop: 7/7. Intents adapter: 3/3. Mock verifier: 5/5.
+- Mainnet deployment (`oneshot-guard.near`) is planned for post-hackathon; nothing here depends on that address. Testnet deployment (oneshot-guard.testnet) is live and used for verification only.
+- The SDK's `executeDecision` talks to any deployed guard; venue adapters target Rhea (direct promise) and NEAR Intents (via 1Click status reads) — the testnet demo uses the bundled mock venue harness so the guard's mechanics are the thing under test, and the testnet verifier is a mock verifier, not intents.near.
 
 ## License
 
