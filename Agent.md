@@ -85,7 +85,7 @@ Build the actual product. Leverage the ecosystem. Prove that it works. Make it d
 
 Before claiming anything is done or real, check it against this list:
 
-- Contract: `cd contract && cargo test` — all 10 unit tests must pass: retry-blocked, settled-permanent, failure-releases, ceiling-reverts, supersede, and expiry.
+- Contract: `cd contract && cargo test` — all 13 unit tests must pass: retry-blocked, settled-permanent, failure-releases, ceiling-reverts, supersede, and expiry, plus cancel-by-executor-releases, cancel-by-non-executor-rejected, and cancel-of-settled-rejected (Step 1, tested 2026-11-05: 13 passed, 0 failed).
 - Live demo: `bun run api` boots a private NEAR Sandbox and deploys the real contract pair. Only LIVE mode runs count as real on-chain verdicts.
 - Replay mode is deterministic and simulated. Label it as simulated. Never present it as an on-chain verdict.
 - The sandbox mock venue is a harness to test the guard's mechanics. It is not a real venue integration. Rhea (direct promise) and NEAR Intents (via 1Click status reads) are venue targets — do not claim them as live integrations unless verified.
