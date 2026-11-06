@@ -1,6 +1,8 @@
 # OneShot — One decision. One shot.
 
-> **The worry this project exists to kill:** you give an AI agent money and clear rules, it makes a perfectly good decision — and then you lose money anyway, not because the decision was wrong, but because nobody could prove what happened to it afterwards.
+> **The fear this project exists to kill:** "The risk I worry about more sits between the decision and the confirmed trade. Say an agent makes a sound, compliant trade within budget, and the transaction gets delayed or outbid on the way to the block. If the agent can't tell whether it went through, it tries again. Then again. Every retry was individually approved, and together they can do real damage."
+>
+> — Robin Nordnes, Founder & CEO at Raiku
 
 [![NEAR testnet verified](https://img.shields.io/badge/live_on_NEAREntestnet-verified-2BD576)](https://explorer.testnet.near.org/accounts/oneshot-guard.testnet)
 [![Contract tests](https://img.shields.io/badge/contract_tests-13%2F13_passing-2BD576)](#verification)
@@ -10,7 +12,10 @@ Built for **NEAR HACKATHON** · Primary track: **AI Security & Defense** · Seco
 
 ---
 
-## 1. Start here: the worry
+## 1. Start here: the fear
+
+That is the fear Robin Nordnes put into words. Here is what it looks like
+in practice.
 
 Picture this, because it is the whole project in one scene.
 
@@ -24,7 +29,7 @@ So the agent does the only sensible thing a program knows how to do when it thin
 
 Each retry, on its own, passes every check. It is in budget. It follows the rules. It was individually approved. But if the first trade actually went through quietly, and the second and third go through as well, you have not bought $500 of the asset. You have bought it three times. You meant to spend $500. You spent $1,500, and doubled the position you wanted — with no single trade ever breaking a rule.
 
-That is the worry. Not a bad agent. Not a bad decision. A good decision, repeated by a system that could not prove what had already happened.
+That is the fear. Not a bad agent. Not a bad decision. A good decision, repeated by a system that could not prove what had already happened.
 
 OneShot exists so an agent never has to guess from silence again.
 
