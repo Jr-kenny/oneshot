@@ -19,4 +19,4 @@ panic = "abort"
 overflow-checks = true
 
 [workspace]
-members = ["mock-venue"]
+members = ["mock-venue", "ref-venue"]

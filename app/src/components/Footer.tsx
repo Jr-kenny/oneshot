@@ -39,7 +39,7 @@ export const Footer: React.FC = () => {
         {/* Right: GitHub & Explorer */}
         <div className="flex items-center gap-4">
           <a
-            href="https://nearblocks.io/address/oneshot-guard.near"
+            href="https://nearblocks.io/address/oneshot-guard.testnet"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 hover:text-[#E6EAF0] transition-colors"
@@ -49,7 +49,7 @@ export const Footer: React.FC = () => {
           </a>
           <span className="text-[#1F2733]">•</span>
           <a
-            href="https://github.com/oneshot-guard/oneshot"
+            href="https://github.com/Jr-kenny/oneshot"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 hover:text-[#E6EAF0] transition-colors"

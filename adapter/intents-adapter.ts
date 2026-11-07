@@ -129,6 +129,19 @@ export async function dryQuote(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...quote, dry: true }),
   });
-  if (!res.ok) throw new Error(`1Click dry quote failed: ${res.status}`);
+  if (!res.ok) {
+    // Keep the API's own message: a bare status hides whether the token
+    // id, the addresses, or the solver auction was the problem.
+    const body = await res.text().catch(() => "");
+    throw new Error(`1Click dry quote failed: ${res.status} ${body.slice(0, 300)}`);
+  }
   return res.json();
 }
+
+/** Correct 1Click asset ids, resolved from GET /v0/tokens (2026-11-07).
+ * USDC on NEAR is the bridged USDC contract, not a guessed id; native
+ * NEAR has no token-list entry, so wNEAR (wrap.near) is the NEAR-side
+ * asset. NEAR-side legs quote through INTENTS, not ORIGIN_CHAIN. */
+export const ONECLICK_WNEAR = "nep141:wrap.near";
+export const ONECLICK_USDC_NEAR =
+  "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1";

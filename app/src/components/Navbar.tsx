@@ -153,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Network: NEAR Mainnet
             </span>
             <span className="text-xs font-mono text-[#8A94A6]">
-              Contract: oneshot-guard.near
+              Contract: oneshot-guard.testnet
             </span>
           </div>
         </div>
