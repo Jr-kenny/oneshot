@@ -77,7 +77,7 @@ Log: oneshot-step3/testnet-run-1.log (in the work branch staging, not main yet)
 - Ref venue: 4/4 (payload parsing/defaults, 2026-11-07).
 
 ## SDK published to npm (roadmap item 2) — completed 2026-11-07
-- Package: `@oneshot-guard/sdk` v0.1.0, live at https://www.npmjs.com/package/@oneshot-guard/sdk (`npm install @oneshot-guard/sdk`).
+- Package: `@oneshot-guard/sdk` v0.1.2 (latest), live at https://www.npmjs.com/package/@oneshot-guard/sdk (`npm install @oneshot-guard/sdk`).
 - The first publish went through npm staged publishing: the registry staged v0.1.0 and created a public `0.0.0-stage` placeholder; the maintainer approved the staged release with 2FA, and `latest` now points at 0.1.0 (verified on the registry: versions `0.0.0-stage`, `0.1.0`, dist-tag `latest: 0.1.0`, tarball HTTP 200).
 - `sdk/` builds to `dist/` (`index.js`, `index.d.ts` + maps); package ships `dist` only.
 
