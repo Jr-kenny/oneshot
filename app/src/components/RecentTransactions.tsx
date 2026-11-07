@@ -25,7 +25,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
     const exportData = {
       app: 'OneShot Execution Integrity',
       network: 'NEAR Mainnet',
-      contract: 'oneshot-guard.near',
+      contract: 'oneshot-guard.testnet',
       exportTimestamp: new Date().toISOString(),
       transactionCount: transactions.length,
       filteredCount: filteredTxs.length,
@@ -78,7 +78,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           {/* View on NEAR Explorer Button */}
           <a
-            href="https://nearblocks.io/address/oneshot-guard.near"
+            href="https://nearblocks.io/address/oneshot-guard.testnet"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0A0E14] border border-[#1F2733] hover:border-[#2BD576]/50 text-[#8A94A6] hover:text-[#2BD576] text-[11px] font-mono transition-colors focus:outline-none cursor-pointer"

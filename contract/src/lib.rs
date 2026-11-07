@@ -14,7 +14,11 @@ use near_sdk::{env, ext_contract, near, require, AccountId, Gas, PanicOnDefault,
 const DECISION_ID_HEX_LEN: usize = 64; // 32 bytes hex
 
 /// Gas for the downstream venue call.
-const VENUE_GAS: Gas = Gas::from_tgas(15);
+/// 100 TGas: the mock venue needs ~nothing, but the real Ref venue needs
+/// a wrap hop + a ft_transfer_call + a Ref swap execution inside it
+/// (~90 TGas across its chain). The agent's call attaches 300 TGas, so
+/// venue 100 + callback 10 + guard overhead still fits comfortably.
+const VENUE_GAS: Gas = Gas::from_tgas(100);
 /// Gas for the resolution callback leg.
 const CALLBACK_GAS: Gas = Gas::from_tgas(10);
 

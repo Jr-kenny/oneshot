@@ -1261,6 +1261,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oneshot-ref-venue"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+ "serde_json",
+]
+
+[[package]]
 name = "ordered-float"
 version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

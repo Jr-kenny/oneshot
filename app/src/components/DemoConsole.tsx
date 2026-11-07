@@ -445,19 +445,22 @@ export const DemoConsole: React.FC<DemoConsoleProps> = ({ autoStart = false }) =
             <span className="px-1.5 py-0.2 rounded bg-[#151B25] border border-[#1F2733] text-[#E6EAF0] text-[9px] uppercase tracking-wider font-semibold">
               REPLAY
             </span>
-            <span>Recorded from a real mainnet run on 2026-10-29</span>
+            <span>
+              Replay — dramatized from the recorded mock-venue testnet run. The real
+              Ref Finance testnet swap is in STATUS-TESTNET.md
+            </span>
             <span className="text-[#1F2733]">•</span>
             <a
-              href="https://nearblocks.io/txns/0x7b4ae1298fc3d014"
+              href="https://explorer.testnet.near.org/transactions/BehuJ1bQ83UzHhn2rNeJRyeos1iPJnkKrLRTbKjBQLMU"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#E6EAF0] underline decoration-[#1F2733]"
             >
-              tx: 0x7b4a…e129
+              real guarded Ref swap tx: Behu…QLMU
             </a>
           </div>
           <span className="hidden sm:inline text-[10px]">
-            Every number is measured and verified on-chain.
+            Replay numbers are simulated; the testnet runs are chain-verified.
           </span>
         </div>
       )}
