@@ -1,7 +1,7 @@
 {
   "name": "@oneshot-guard/sdk",
-  "version": "0.1.1",
-  "description": "OneShot — execution integrity for AI agents. One decision. One shot.",
+  "version": "0.1.2",
+  "description": "OneShot \u2014 execution integrity for AI agents. One decision. One shot.",
   "homepage": "https://github.com/Jr-kenny/oneshot",
   "bugs": {
     "url": "https://github.com/Jr-kenny/oneshot/issues"
