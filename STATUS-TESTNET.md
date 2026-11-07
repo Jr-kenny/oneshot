@@ -76,6 +76,11 @@ Log: oneshot-step3/testnet-run-1.log (in the work branch staging, not main yet)
 - Agent loop: 7/7. Intents adapter: 5/5. Mock verifier: 5/5.
 - Ref venue: 4/4 (payload parsing/defaults, 2026-11-07).
 
+## SDK published to npm (roadmap item 2) — completed 2026-11-07
+- Package: `@oneshot-guard/sdk` v0.1.0, live at https://www.npmjs.com/package/@oneshot-guard/sdk (`npm install @oneshot-guard/sdk`).
+- The first publish went through npm staged publishing: the registry staged v0.1.0 and created a public `0.0.0-stage` placeholder; the maintainer approved the staged release with 2FA, and `latest` now points at 0.1.0 (verified on the registry: versions `0.0.0-stage`, `0.1.0`, dist-tag `latest: 0.1.0`, tarball HTTP 200).
+- `sdk/` builds to `dist/` (`index.js`, `index.d.ts` + maps); package ships `dist` only.
+
 ## Real 1Click dry quote (roadmap item 4) — completed 2026-11-07
 - Token list: GET https://1click.chaindefuser.com/v0/tokens (216 entries).
   USDC on NEAR, from the list (not guessed):
