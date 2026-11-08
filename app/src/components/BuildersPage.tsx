@@ -393,15 +393,15 @@ console.log(status);
             <h2 className="text-xl font-semibold text-[#E6EAF0] mb-2">Roadmap</h2>
             <div className="bg-[#0F141C] border border-[#1F2733] rounded-[6px] p-5">
               <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 rounded bg-[#F5A524]/20 text-[#F5A524] text-[10px] font-mono font-bold uppercase tracking-wider">
-                  Upcoming
+                <span className="px-2 py-0.5 rounded bg-[#22C55E]/20 text-[#22C55E] text-[10px] font-mono font-bold uppercase tracking-wider">
+                  Proven on Base Sepolia testnet
                 </span>
                 <h3 className="text-base font-semibold text-[#E6EAF0]">
                   NEAR Chain Signatures Integration
                 </h3>
               </div>
               <p className="text-xs text-[#8A94A6] leading-relaxed">
-                One guard for every chain an agent touches. Leveraging NEAR MPC Chain Signatures, OneShot will issue threshold signatures for Ethereum, Solana, and Bitcoin execution only after the NEAR guard confirms reservation and exactly-once state. Cross-chain retry duplication is eliminated uniformly.
+                One guard for every chain an agent touches. Leveraging NEAR MPC Chain Signatures, OneShot issues threshold signatures for cross-chain execution only after the NEAR guard confirms reservation and exactly-once state. Proven live on Base Sepolia testnet on 8 Nov 2026: the guard went LIVE then Settled, the MPC signer signed a 0.001 ETH transfer to self, and it landed on Base Sepolia (tx 0x38bd0e522e58156fda423c9693541a7f81c73862acc4c4bf07a615c5c94221ea, block 5565616). A retry of the same decision was blocked on chain, so no second transfer happened. The guard contract itself does not call the MPC contract yet, and Solana, Bitcoin and mainnet are still to come.
               </p>
             </div>
           </section>
