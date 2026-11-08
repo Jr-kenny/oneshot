@@ -1,4 +1,4 @@
-# OneShot — testnet status (verified 2026-11-05, updated 2026-11-07)
+# OneShot — testnet status (verified 2026-11-05, updated 2026-11-08)
 
 ## Live on NEAR testnet (faucet tokens)
 - Guard: oneshot-guard.testnet — https://explorer.testnet.near.org/accounts/oneshot-guard.testnet
@@ -109,6 +109,38 @@ Log: oneshot-step3/testnet-run-1.log (in the work branch staging, not main yet)
   dry quote moves no funds).
 - This is a dry quote only, NOT a settlement: no trade was made, no
   deposit address was issued, and no solver filled anything.
+
+## NEAR Chain Signatures — proven on Base Sepolia testnet (roadmap item 5) — completed 2026-11-08
+- MPC testnet contract `v1.signer-prod.testnet` (Secp256k1, domain 0)
+  derived the address `0xdeba5a22fb1924efa8c53593aa16a6259322156f`
+  for predecessor `agent.oneshot-guard.testnet`, path
+  `oneshot-sepolia-1`. The same address is used on Base Sepolia
+  (chain 84532).
+- Guard decision `7f7e24e7ecfa86f10dd55803cb260d705c17cd33f2b1e61a96ff1e7e62814ab4`
+  (0.001 ETH, Base Sepolia, to self) went LIVE then Settled first.
+  Guard tx: https://explorer.testnet.near.org/transactions/5fYSGEDQVpPjMbczFTw2L8gjCi6U25d85Z2WMRr3CoFo
+  The proof script read the guard state back before signing; that
+  read is the gate in this proof.
+- MPC signature live. Sign tx: https://explorer.testnet.near.org/transactions/FFQt2rASFfvxVvjZV51GNLf5C5yEJN7AvmYr6CB4FStU
+  (args `{request: {payload, path: "oneshot-sepolia-1", key_version: 0}}`,
+  1 yocto deposit). The signed transaction recovers to exactly the
+  derived address.
+- Base Sepolia transfer LANDED, confirmed: tx
+  `0x38bd0e522e58156fda423c9693541a7f81c73862acc4c4bf07a615c5c94221ea`,
+  block 5565616, status success, 0.001 ETH to self, gas 21000.
+  Explorer: https://sepolia.basescan.org/tx/0x38bd0e522e58156fda423c9693541a7f81c73862acc4c4bf07a615c5c94221ea
+  The address was funded with 0.02 Base Sepolia ETH (testnet only);
+  balance after the transfer was about 0.019998 ETH.
+- Retry of the same decision was blocked on chain
+  ("retry blocked — decision already SETTLED"). No second MPC
+  signature and no second transfer happened.
+- Proof scripts: `scripts/chainsig-sepolia-proof.cjs` (Ethereum
+  Sepolia) and `scripts/chainsig-base-sepolia-proof.cjs` (Base Sepolia).
+- NOT done: the guard contract itself does not call the MPC contract
+  yet — the gate here is the proof script reading guard state first.
+  The Ethereum Sepolia signed transfer from the earlier run is still
+  unfunded and unbroadcast. Solana, Bitcoin, Intents settlement and
+  mainnet are out of scope.
 
 ## Honest limitations — read before judging
 - The venue in testnet demo run 1 is the mock venue, not a real DEX.
