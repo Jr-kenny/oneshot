@@ -17,7 +17,7 @@ export const DEFAULT_CONFIG: SimulationConfig = {
 };
 
 export const DEFAULT_DECISION_ID = '0x9f3a8b41e05d2c73';
-export const CONTRACT_ADDRESS = 'oneshot-guard.near';
+export const CONTRACT_ADDRESS = 'oneshot-guard.testnet';
 export const VENUE_RHEA = 'v1.rhea-exchange.near';
 export const VENUE_INTENTS = 'intents.near';
 

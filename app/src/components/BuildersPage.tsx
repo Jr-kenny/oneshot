@@ -115,7 +115,7 @@ export const BuildersPage: React.FC = () => {
 
 // Wrap your raw NEAR account or intent dispatcher
 const guardedAgent = wrapAgentWithOneShot(agentAccount, {
-  guardContract: 'oneshot-guard.near',
+  guardContract: 'oneshot-guard.testnet',
   maxInFlightCeiling: 1000, // $1,000 maximum atomic exposure
 });
 
@@ -324,7 +324,7 @@ console.log(status);
                 <div>
                   <span className="text-[10px] uppercase text-[#8A94A6] block">Explorer Link</span>
                   <a
-                    href="https://nearblocks.io/address/oneshot-guard.near"
+                    href="https://nearblocks.io/address/oneshot-guard.testnet"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-[#E6EAF0] hover:underline mt-1"

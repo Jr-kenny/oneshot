@@ -106,9 +106,20 @@ This is a working prototype on NEAR testnet, verified by chain reads — not a r
 | Piece | Testnet account / link |
 |---|---|
 | Guard contract | [oneshot-guard.testnet](https://explorer.testnet.near.org/accounts/oneshot-guard.testnet) |
-| Venue (mock venue) | venue.oneshot-guard.testnet |
+| Venue (Ref Finance testnet — real swap) | ref-venue.oneshot-guard.testnet — swaps testnet NEAR for testnet USDC.e on Ref Finance (`ref-finance-101.testnet`, pool 2896) |
+| Venue (mock venue, run 1 + sandbox only) | venue.oneshot-guard.testnet |
 | Mock verifier (stand-in for intents.near) | verifier.oneshot-guard.testnet |
 | Demo agent | agent.oneshot-guard.testnet |
+
+**Live demo run 2 — guarded real Ref Finance swap, chain-read (7 Nov 2026):**
+
+| Side | What happened | Chain result |
+|---|---|---|
+| Guarded decision `5c48eab1…ca5fd595c` | Went LIVE on chain, 0.01 NEAR reserved, ref venue wrapped it to wNEAR and swapped it on Ref Finance testnet pool 2896, settled by promise callback, money-in-air back to 0 | **Swapped exactly once** — 0.01 testnet NEAR → **0.039316 testnet USDC.e**, trade tx `BehuJ1bQ83UzHhn2rNeJRyeos1iPJnkKrLRTbKjBQLMU` |
+| Same guarded decision, retried 3 more times | Every retry hit the guard on chain | **Blocked 3/3** — "already SETTLED", no second swap (venue swaps stayed 1) |
+| Ref venue, read from chain | Swaps 0 → 1, USDC.e balance 0 → 39,316 base units | **Exactly one real swap** |
+
+Full hashes, logs and pool notes: [`STATUS-TESTNET.md`](STATUS-TESTNET.md). One honest caveat, stated in full there: testnet pools are seeded at arbitrary ratios, so pool 2896's implied price (~$4/NEAR) is close to a real NEAR price but is not a market price — the swap itself is real (real AMM, real tokens, real tx).
 
 **Live demo run 1 — naive vs guarded, chain-read (5 Nov 2026):**
 
@@ -121,16 +132,18 @@ This is a working prototype on NEAR testnet, verified by chain reads — not a r
 
 Full hashes, logs and verifier results: [`STATUS-TESTNET.md`](STATUS-TESTNET.md).
 
-**Unit tests (all passing):** guard contract 13/13 · agent loop 7/7 · Intents adapter 3/3 · mock verifier 5/5.
+**Unit tests (all passing):** guard contract 13/13 · agent loop 7/7 · Intents adapter 5/5 · mock verifier 5/5 · ref venue 4/4.
 
 ## 5. Current scope
 
 | Built and verified | Planned, not yet built |
 |---|---|
-| Guard, decision identity, three-state lifecycle, money-in-air cap, cancel, scoped keys — on testnet, on chain | A real DEX trade. The testnet venue is a **mock venue**: it always fills, so it tests the guard's mechanics, not a real market. |
-| Intents adapter code (nonce = salt + decision hash, deadline, token_diff), tested against a mock verifier on testnet | A real Intents settlement. The testnet verifier is a **mock verifier**, not intents.near. It checks no NEP-413 signature and settles nothing cross-chain. |
-| A working agent loop that retries correctly: same parameters every attempt, PENDING treated as "not failure" | A published npm package and a hosted demo — see [Roadmap](#8-roadmap). |
-| Testnet deployment, persistent and clickable | Mainnet deployment. `oneshot-guard.near` is planned, not deployed. |
+| Guard, decision identity, three-state lifecycle, money-in-air cap, cancel, scoped keys — on testnet, on chain | A real Intents settlement. The testnet verifier is a **mock verifier**, not intents.near. It checks no NEP-413 signature and settles nothing cross-chain. |
+| A real DEX trade on testnet: the guard now forwards to a Ref Finance testnet venue (`ref-venue.oneshot-guard.testnet`) that wraps NEAR to wNEAR and swaps it for testnet USDC.e on Ref (`ref-finance-101.testnet`, pool 2896) — verified run 2, exactly one swap, retries blocked 3/3. The mock venue is kept only for run 1 and the local sandbox. | A published npm package — `@oneshot-guard/sdk` v0.1.2 is live on npm: `npm install @oneshot-guard/sdk`. |
+| Intents adapter code (nonce = salt + decision hash, deadline, token_diff), tested against a mock verifier on testnet | Mainnet deployment. `oneshot-guard.near` is planned, not deployed. |
+| A working agent loop that retries correctly: same parameters every attempt, PENDING treated as "not failure" | — |
+| Testnet deployment, persistent and clickable | — |
+| Hosted demo — live at https://oneshot.pxxlspace.cv, deployed from `main`, live backend on NEAR testnet | — |
 
 ## 6. How a developer runs it
 
@@ -205,7 +218,7 @@ const view = await guarded.checkDecision(result.decisionId); // LIVE | SETTLED |
 
 `decisionKey(agentAccount, params)` is exported alone, so indexers and auditors can precompute the same key from an agent's intent log.
 
-**Installation note:** the SDK is currently used from this repository's workspace (`sdk/`, package `@oneshot-guard/sdk`, v0.1.0). It is not yet published to npm — see [Roadmap](#8-roadmap).
+**Installation note:** the SDK is published to npm as `@oneshot-guard/sdk` v0.1.2 — `npm install @oneshot-guard/sdk`. It is also used from this repository's workspace (`sdk/`).
 
 ## 7. Contract surface
 
@@ -222,7 +235,7 @@ Layout:
 
 ```
 oneshot/
-├── contract/          NEAR guard contract (Rust, near-sdk v5) + mock venue
+├── contract/          NEAR guard contract (Rust, near-sdk v5) + mock venue + ref venue (real Ref testnet swap)
 │   ├── Cargo.toml     oneshot-guard + mock-venue workspace
 │   └── src/lib.rs     decision registry, reservation engine, promise callback resolution
 ├── contract/mock-verifier/  Testnet stand-in for intents.near (nonce, deadline, settled)
@@ -240,10 +253,10 @@ oneshot/
 
 ## 8. Roadmap
 
-1. **Hosted demo** — deploy the frontend (Vite static build) to Vercel, pointed at the testnet deployment, and keep it up through judging.
-2. **Publish the SDK to npm** — build `sdk/` to a `dist/` (today its entry point is TypeScript source) and publish `@oneshot-guard/sdk` publicly.
-3. **Real testnet venue** — replace the mock venue in the demo with a real Ref Finance testnet swap (testnet NEAR for testnet USDC).
-4. **Real 1Click dry quote** — complete a `dry: true` quote with the correct token id from the 1Click token list.
+1. **Hosted demo — done.** The frontend is live at https://oneshot.pxxlspace.cv, deployed from `main`, with the live demo backend on NEAR testnet.
+2. **Publish the SDK to npm — done.** `@oneshot-guard/sdk` v0.1.2 is live on npm: `npm install @oneshot-guard/sdk` (https://www.npmjs.com/package/@oneshot-guard/sdk). Published 7 Nov 2026 via npm staged publishing, approved by the maintainer.
+3. **Real testnet venue — done.** The guard forwards to a Ref Finance testnet venue (`ref-venue.oneshot-guard.testnet`): testnet NEAR is wrapped to wNEAR and swapped for testnet USDC.e on Ref Finance (`ref-finance-101.testnet`, pool 2896). Verified run 2 on 7 Nov 2026: exactly one swap, retries blocked 3/3. Details in [`STATUS-TESTNET.md`](STATUS-TESTNET.md).
+4. **Real 1Click dry quote — done.** A `dry: true` quote ran with the correct token id from the 1Click token list: 0.1 wNEAR → 0.374346 USDC (7 Nov 2026). A dry quote is a price preview only, not a settlement. Details in [`STATUS-TESTNET.md`](STATUS-TESTNET.md).
 
 ## 9. Built with
 
